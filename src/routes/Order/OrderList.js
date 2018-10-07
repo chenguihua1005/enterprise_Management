@@ -1,0 +1,718 @@
+import React, { PureComponent, Fragment } from 'react';
+import { connect } from 'dva';
+import { Row, Col, Card, Form, Input, Select, Button, Modal, Badge, DatePicker, Table, Icon, message } from 'antd';
+
+import PageHeaderLayout from '../../layouts/PageHeaderLayout';
+import styles from './OrderList.less';
+import moment from 'moment/moment';
+import { getTimeDistance } from '../../utils/utils';
+
+const FormItem = Form.Item;
+const Option = Select.Option;
+const { RangePicker } = DatePicker;
+const dateFormat = 'YYYY/MM/DD HH:mm:ss';
+// 全部城市
+const provinceData = ['全部','Zhejiang', 'Jiangsu'];
+// 全部地区
+const cityData = {
+  全部: ['全部'],
+  Zhejiang: ['Hangzhou', 'Ningbo', 'Wenzhou'],
+  Jiangsu: ['Nanjing', 'Suzhou', 'Zhenjiang'],
+};
+
+const CreateForm = Form.create()(props => {
+  const { modalVisible, form, setModalVisible, orderDetails, orderStatus } = props;
+  // const okHandle = () => {
+  //   form.validateFields((err, fieldsValue) => {
+  //     if (err) return;
+  //     form.resetFields();
+  //     handleAdd(fieldsValue);
+  //   });
+  // };
+  return (
+    <Modal
+      title="订单详情"
+      width={1000}
+      visible={modalVisible}
+      onCancel={() => setModalVisible()}
+      footer={[
+        <Button key="关闭" type="primary" onClick={() => setModalVisible()}>
+          关闭
+        </Button>
+      ]}
+    >
+      <Row className={styles.order}>
+        <Col span={24}>
+          <p>订单编号: {orderDetails.orderNumber}</p>
+        </Col>
+      </Row>
+      <div className={styles.orderDetails}>
+        <Row className={styles.orderRow}>
+          <Col span={8}>
+            <span>服务时间: {orderDetails.createTime}</span>
+          </Col>
+          <Col span={8}>
+            <span>支付时间:{orderDetails.payTime}</span>
+          </Col>
+          <Col span={8}>
+            <span>状态: {orderStatus}</span>
+          </Col>
+        </Row>
+        <Row className={styles.p} span={24}>
+          <Col>
+            <p>订单明细</p>
+          </Col>
+        </Row>
+        <Row className={styles.orderRow}>
+          <Col span={8}>
+            <span>司机手机号: {orderDetails.driverPhone}</span>
+          </Col>
+          <Col span={8}>
+            <span>车牌号:{orderDetails.carNumber}</span>
+          </Col>
+          <Col span={8}>
+            <span>分公司名称: {orderDetails.branchName}</span>
+          </Col>
+        </Row>
+        <Row className={styles.orderRow}>
+          <Col span={8}>
+            <span>支付类型: {orderDetails.payType}</span>
+          </Col>
+          <Col span={8}>
+            <span>油品类型:{orderDetails.productName}</span>
+          </Col>
+          <Col span={8}>
+            <span>找油单价:{orderDetails.unitPrice}元/升</span>
+          </Col>
+        </Row>
+        <Row className={styles.orderRow}>
+          <Col span={8}>
+            <span>加油升量: {orderDetails.litres}L</span>
+          </Col>
+          <Col span={8}>
+            <span>订单金额:{orderDetails.orderAmount}元</span>
+          </Col>
+          <Col span={8}>
+            <span>实付金额:{orderDetails.payAmount}元</span>
+          </Col>
+        </Row>
+        <Row className={styles.orderRow}>
+          <Col span={8}>
+            <span>加油网点: {orderDetails.skidName}</span>
+          </Col>
+          <Col span={8}>
+            <span>网点地址:{orderDetails.skidRegionName}</span>
+          </Col>
+        </Row>
+      </div>
+    </Modal>
+  );
+});
+
+@connect(({ order, loading }) => ({
+  order,
+  loading: loading.effects['order/searchOrder'],
+}))
+@Form.create()
+export default class OrderList extends PureComponent {
+  constructor(props) {
+    super(props); // 调用积累所有的初始化方法
+    this.state = {
+      selectedRows: [],
+      modalVisible: false,
+      rangePickerValue: getTimeDistance('month'),
+    };
+  }
+
+  componentDidMount() {
+    const { dispatch } = this.props;
+    //列表
+    dispatch({
+      type: 'order/searchOrder',
+      payload: {
+        page: 1,
+        count: 10,
+      },
+    });
+
+    // 网点
+    dispatch({
+      type: 'order/skidList',
+      payload: {
+      },
+    });
+
+    // 所属分公司
+    dispatch({
+      type: 'order/fetchBranchCompany',
+      payload: {
+      },
+    });
+
+    // 城市
+    dispatch({
+      type: 'order/regionList',
+      payload: {
+        level: 1,
+        parentId: 1,
+      },
+    });
+    // 用油类型
+    dispatch({
+      type: 'order/fetchGoodsCompany',
+      payload: {
+      },
+    });
+  }
+
+  setModalVisible = flag => {
+    this.setState({
+      modalVisible: !!flag,
+    });
+  };
+  //订单详情
+  orderDetails = (row) => {
+    const { dispatch } = this.props;
+    //列表
+    dispatch({
+      type: 'order/retailOrderDetails',
+      payload: {
+        orderNumber: row,
+      },
+    });
+    this.setState({
+      modalVisible: true,
+    });
+  };
+
+  handleSelectRows = rows => {
+    this.setState({
+      selectedRows: rows,
+    });
+  };
+  handleStandardTableChange = (pagination, filtersArg, sorter) => {
+    const { dispatch } = this.props;
+    const params = {
+      page: pagination.current,
+      count: pagination.pageSize,
+      isCount: 1,
+    };
+
+    dispatch({
+      type: 'order/searchOrder',
+      payload: params,
+    });
+  };
+// 模糊查询
+  handleSearch = e => {
+    e.preventDefault();
+    const { dispatch, form } = this.props;
+    const {rangePickerValue}=this.state;
+    const [startValue,endValue]=rangePickerValue;
+    if(Object.keys(rangePickerValue).length!=0){
+      const startTime = startValue.format('YYYY-MM-DD HH:mm:ss');
+      const endTime = endValue.format('YYYY-MM-DD HH:mm:ss');
+      form.validateFields((err, fieldsValue) => {
+        if (err) return;
+        for (const prop in fieldsValue) {
+          if (
+            fieldsValue[prop] === '' ||
+            fieldsValue[prop] === '全部' ||
+            fieldsValue[prop] === undefined
+          ) {
+            delete fieldsValue[prop];
+          }
+        }
+      const params={
+        orderSn: fieldsValue.orderSn,
+        ossId: fieldsValue.ossId,
+        branchId: fieldsValue.branchId,
+        payType: fieldsValue.payType,
+        proSku: fieldsValue.proSku,
+        provinceId: fieldsValue.provinceId,
+        cityId: fieldsValue.cityId,
+        status: fieldsValue.status,
+        likeVal: fieldsValue.likeVal,
+        time:[
+          {start: startTime},
+          {end: endTime}
+        ],
+        page: 1,
+        count: 10,
+      };
+
+        const values = {
+          ...params,
+          transactionType: fieldsValue.transactionType,
+          direction: fieldsValue.direction,
+        };        // this.setState({
+        //   formValues: values,
+        //   barTitle:thirdTitle,
+        //   rankType:fieldsValue["rankType"]
+        // });
+        dispatch({
+          type: 'order/searchOrder',
+          payload: values,
+        });
+      });
+    }else{
+      message.error("日期不能为空");
+    }
+  };
+  //日期框设置值
+  handleRangePickerChange = rangePickerValue => {
+    this.setState({
+      rangePickerValue,
+    });
+  };
+  //禁用当前日期之后的时间
+  disabledDate = current => {
+    // console.log(moment().subtract(3,"months"));
+    // return current && current < moment().subtract(3,"months");
+    return current && current > moment().endOf('day');
+  };
+  //重置
+  handleFormReset = () => {
+    const { form, dispatch } = this.props;
+    form.resetFields();
+    this.setState({
+      formValues: {},
+      rangePickerValue: getTimeDistance('month'),
+    });
+    // const startTime = startValue.format('YYYY-MM-DD');
+    // const endTime = endValue.format('YYYY-MM-DD');
+
+    dispatch({
+      type: 'order/searchOrder',
+      payload: {
+        page: 1,
+        count: 10,
+      },
+    });
+  };
+
+    //导出
+  handleExport = () => {
+    const { dispatch, form } = this.props;
+    const { getFieldValue } = form;
+    const { rangePickerValue } = this.state;
+    const [startValue, endValue] = rangePickerValue;
+    if (Object.keys(rangePickerValue).length != 0) {
+      const startTime = startValue.format('YYYY-MM-DD');
+      const endTime = endValue.format('YYYY-MM-DD');
+      form.validateFields((err, fieldsValue) => {
+        if (err) return;
+        for (const prop in fieldsValue) {
+          if (
+            fieldsValue[prop] === '' ||
+            fieldsValue[prop] === '全部' ||
+            fieldsValue[prop] === undefined
+          ) {
+            delete fieldsValue[prop];
+          }
+        }
+      const params={
+        orderSn: fieldsValue.orderSn,
+        ossId: fieldsValue.ossId,
+        branchId: fieldsValue.branchId,
+        payType: fieldsValue.payType,
+        proSku: fieldsValue.proSku,
+        provinceId: fieldsValue.provinceId,
+        cityId: fieldsValue.cityId,
+        status: fieldsValue.status,
+        likeVal: fieldsValue.likeVal,
+        time:[
+          {start: startTime},
+          {end: endTime}
+        ],
+        page: 1,
+        count: 10,
+        actionType: 1,
+      };
+
+        const values = {
+          ...params,
+          transactionType: fieldsValue.transactionType,
+          direction: fieldsValue.direction,
+        }; 
+        dispatch({
+          type: 'order/searchOrderExport',
+          payload: values,
+        }).then(() => {
+          const { exportList } = this.props.order;
+          switch (exportList.err) {
+            //err=0成功
+            case 0:
+              message.success(exportList.msg);
+              window.open(exportList.res.path);
+              break;
+            default:
+              message.warning(exportList.msg);
+          }
+        });
+      })
+    } else {
+      message.error('日期不能为空');
+    }
+  }
+  
+  //城市联动
+  handleProvinceChange = (value) => {
+    const { dispatch } = this.props;
+    dispatch({
+      type: 'order/regionList2',
+      payload: {
+        level: 2,
+        parentId: Number(value) ,
+      },
+    });
+  }
+  // 地区
+  // onSecondCityChange = (value) => {
+  //   this.setState({
+  //     secondCity: value,
+  //   });
+  // }
+  // 订单状态
+  getOrderDetails = (value) => {
+    if(value === "待支付"  
+    || value === "支付中" 
+    || value === "支付失败") {
+      return "待付款"
+    } else if (value === "退款申请提交" 
+    || value === "退款审核通过" 
+    || value === "退款中" 
+    || value === "退款审核失败" 
+    || value === "退款失败") {
+      return "退款中"
+    } else if (value === "成功订单") {
+      return "已付款"
+    } else if (value === "退款成功") {
+      return "已退款"
+    } else {
+      return "已取消"
+    }
+  };
+
+  render() {
+    const { order, loading, form } = this.props;
+    const { getFieldDecorator } = form;
+    const { orderList, skidList, branchCompany, GoodsCompany, regionCompany, cityCompany, orderDetails } = order;
+
+    const { total, list: tableData } = orderList;
+
+    const { selectedRows, modalVisible } = this.state;
+
+
+    const orderStatus = this.getOrderDetails(orderDetails.orderStatus);
+    //网点
+    const SkidOptions = [];
+    //遍历前要检查是否存在，不然会报错： Cannot read property 'forEach' of undefined
+    if (skidList != undefined && skidList.length > 0) {
+      skidList.forEach(item => {
+        SkidOptions.push(
+          <Option key={item.key} value={`${item.key}`}>
+            {item.ossName}
+          </Option>
+        );
+      });
+    }
+
+    //所属分公司
+    const branchOptions = [];
+    //遍历前要检查是否存在，不然会报错： Cannot read property 'forEach' of undefined
+    if (branchCompany != undefined && branchCompany.length > 0) {
+      branchCompany.forEach(item => {
+        branchOptions.push(
+          <Option key={item.key} value={`${item.key}`}>
+            {item.companyBranchName}
+          </Option>
+        );
+      });
+    }
+
+    // 用油类型
+    const goodOptions = [];
+    //遍历前要检查是否存在，不然会报错： Cannot read property 'forEach' of undefined
+    if (GoodsCompany != undefined && GoodsCompany.length > 0) {
+      GoodsCompany.forEach(item => {
+        goodOptions.push(
+          <Option key={item.key} value={`${item.key}`}>
+            {item.name}
+          </Option>
+        );
+      });
+    }
+    // 城市
+    const regionOptions = [];
+    //遍历前要检查是否存在，不然会报错： Cannot read property 'forEach' of undefined
+    if (regionCompany != undefined && regionCompany.length > 0) {
+      regionCompany.forEach(item => {
+        regionOptions.push(
+          <Option key={item.key} value={`${item.key}`}>
+            {item.regionName}
+          </Option>
+        );
+      });
+    }
+    // 地区
+    const cityOptions = [];
+    //遍历前要检查是否存在，不然会报错： Cannot read property 'forEach' of undefined
+    if (cityCompany != undefined && cityCompany.length > 0) {
+      cityCompany.forEach(item => {
+        cityOptions.push(
+          <Option key={item.key} value={`${item.key}`}>
+            {item.regionName}
+          </Option>
+        );
+      });
+    }
+
+
+    //分页属性设置
+    const paginationProps = {
+      showQuickJumper: true,
+      showSizeChanger: true,
+      total: total,
+      showTotal: () => `共计 ${total} 条`,
+    };
+    const parentMethods = {
+      setModalVisible: this.setModalVisible,
+      SkidOptions,
+      branchOptions,
+      goodOptions,
+      regionOptions,
+      cityOptions,
+      orderDetails,
+      orderStatus,
+    };
+    const rowSelection = {
+      onChange: (selectedRowKeys, selectedRows) => {
+        console.log(`selectedRowKeys: ${selectedRowKeys}`, 'selectedRows: ', selectedRows);
+      },
+    };
+
+    // getBillStatus = (status) => {
+    //     if(status == '1') {
+    //       return <Badge text="待付款"/>
+    //     }else if(status == '2'){
+    //       return <Badge text="已付款"/>
+    //     }
+    // }
+
+    const column = [
+      {
+        title: '订单编号',
+        dataIndex: 'orderSn',
+      },
+      {
+        title: '司机手机号',
+        dataIndex: 'employeeMobile',
+      },
+      {
+        title: '分公司名称',
+        dataIndex: 'branchName',
+      },
+      {
+        title: '加油地点',
+        dataIndex: 'region',
+      },
+      {
+        title: '用油类型',
+        dataIndex: 'productName',
+      },
+      {
+        title: '加油升量',
+        dataIndex: 'skuLitre',
+      },
+      {
+        title: '单价(元/升)',
+        dataIndex: 'price',
+      },
+      {
+        title: '订单金额(元)',
+        dataIndex: 'amount',
+      },
+      {
+        title: '服务时间',
+        dataIndex: 'createTime',
+      },
+      {
+        title: '状态',
+        dataIndex: 'statusVal',
+        // render: status => this.getBillStatus(status)
+        //   // text === 1 ? <Badge status="1" text="待付款" /> : <Badge payStatus="2" text="已付款" />,
+      },
+      {
+        title: '操作',
+        fixed: 'right',
+        width: 150,
+        render: (record) => (
+          <Fragment>
+            <Button type="primary" onClick={() => this.orderDetails(record.orderSn)}>
+              查看详情
+            </Button>
+          </Fragment>
+        ),
+      },
+    ];
+    return (
+    <PageHeaderLayout>
+        <div className={styles.tableList}>
+          <Card bordered={false}>
+            <div className={styles.tableListForm}>
+              <Form layout="inline" onSubmit={this.handleSearch}>
+                <Row gutter={{ md: 8, lg: 24, xl: 48 }}>
+                  <Col md={8} sm={24}>
+                    <FormItem label="加油网点">
+                      {getFieldDecorator('ossId')(<Select
+                        showSearch
+                        allowClear
+                        placeholder="加油网点"
+                        optionFilterProp="children"
+                        filterOption={(input, option) => option.props.children.toLowerCase().indexOf(input.toLowerCase()) >= 0}
+                      >
+                        {SkidOptions}
+                      </Select>)
+                      }
+                    </FormItem>
+                  </Col>
+                  <Col md={8} sm={24}>
+                    <FormItem label="分公司名称">
+                      {getFieldDecorator('branchId')(
+                        <Select
+                          showSearch
+                          allowClear
+                          placeholder="分公司名称"
+                          optionFilterProp="children"
+                          filterOption={(input, option) => option.props.children.toLowerCase().indexOf(input.toLowerCase()) >= 0}
+                        >
+                          {branchOptions}
+                        </Select>)
+                      }
+                    </FormItem>
+                  </Col>
+                  <Col md={8} sm={24}>
+                    <FormItem label="支付类型">
+                      {getFieldDecorator('payType')(
+                        <Select
+                          allowClear
+                          placeholder="支付类型">
+                          <Option value="0">全部</Option>
+                          <Option value="1">余额</Option>
+                          <Option value="21">授信</Option>
+                          <Option value="31">微信</Option>
+                          <Option value="32">支付宝</Option>
+                          <Option value="33">银行卡</Option>
+                        </Select>)
+                      }
+                    </FormItem>
+                  </Col>
+                </Row>
+                <Row gutter={{ md: 8, lg: 24, xl: 48 }}>
+                  <Col md={8} sm={24}>
+                    <FormItem label="用油类型">
+                      {getFieldDecorator('proSku')(
+                        <Select
+                          allowClear
+                          placeholder="用油类型" style={{ width: '100%' }}>
+                          {goodOptions}
+                        </Select>)
+                      }
+                    </FormItem>
+                  </Col>
+                  <Col md={8} sm={24}>
+                    <FormItem label="城市">
+                      {getFieldDecorator('provinceId')(
+                        <Select
+                          allowClear
+                          placeholder="城市"
+                          style={{ width: '100%' }}
+                          onChange={this.handleProvinceChange}>
+                          {regionOptions}
+                        </Select>)
+                      }
+                    </FormItem>
+                  </Col>
+                  <Col md={8} sm={24}>
+                    <FormItem label="地区">
+                      {getFieldDecorator('cityId')(
+                        <Select
+                          allowClear
+                          placeholder="地区"
+                          style={{ width: '100%' }}
+                          onChange={this.onSecondCityChange}>
+                          {cityOptions}
+                        </Select>)
+                      }
+                    </FormItem>
+                  </Col>
+                </Row>
+                <Row gutter={{ md: 8, lg: 24, xl: 48 }}>
+                  <Col md={8} sm={24}>
+                    <FormItem label="状态">
+                      {getFieldDecorator('status')(
+                        <Select
+                          allowClear
+                          placeholder="请选择状态"
+                          style={{ width: '100%' }}>
+                          <Option value="">全部</Option>
+                          <Option value="1">待付款</Option>
+                          <Option value="3">已付款</Option>
+                          <Option value="5">退款中</Option>
+                          <Option value="8">已退款</Option>
+                          <Option value="0">已取消</Option>
+                        </Select>)
+                      }
+                    </FormItem>
+                  </Col>
+                  <Col md={8} sm={24}>
+                    <FormItem label="时间">
+                      {getFieldDecorator('time')(
+                        <RangePicker 
+                        allowClear
+                        showTime
+                        disabledDate={this.disabledDate}
+                        onChange={this.handleRangePickerChange}
+                        style={{ width: '100%' }} />
+                      )
+                      }
+                    </FormItem>
+                  </Col>
+                  <Col md={8} sm={24}>
+                    <FormItem label="关键词">{getFieldDecorator('likeVal')(<Input placeholder="请输入订单编号/手机号/车牌号" />)}</FormItem>
+                  </Col>
+                </Row>
+                <div style={{ overflow: 'hidden' }}>
+          <span style={{ float: 'right', marginBottom: 24 }}>
+            <Button type="primary" htmlType="submit">
+            <Icon type="search" />查询
+            </Button>
+            <Button style={{ marginLeft: 8 }} onClick={this.handleFormReset}>重置</Button>
+            <Button style={{ marginLeft: 8 }} type="primary" onClick={this.handleExport}><Icon type="export" />导出</Button>
+          </span>
+                </div>
+              </Form>
+            </div>
+          </Card>
+          <Row style={{marginTop:20}}>
+            <Card>
+              <div>
+                <Table
+                  pagination={paginationProps}
+                  rowSelection={rowSelection}
+                  loading={loading}
+                  columns={column}
+                  dataSource={tableData}
+                  onChange={this.handleStandardTableChange}
+                  scroll={{ x: 1500 }}
+                />
+              </div>
+            </Card>
+          </Row>
+        </div>
+        <CreateForm {...parentMethods} modalVisible={modalVisible} />
+      </PageHeaderLayout>
+    );
+  }
+}
