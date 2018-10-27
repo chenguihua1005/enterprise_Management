@@ -1,20 +1,21 @@
 import React, { PureComponent, Fragment } from 'react';
 import { connect } from 'dva';
-import { Row, Col, Card, Form, Select, Button, Table, DatePicker, message, } from 'antd';
+import { Row, Col, Card, Form, Select, Button, Table, DatePicker, message } from 'antd';
 import styles from '../OilFee.less';
+import moment from 'moment';
+import { getTimeDistance } from '../../../utils/utils';
 const { RangePicker } = DatePicker;
 const FormItem = Form.Item;
 const { Option } = Select;
-import moment from 'moment';
-import { getTimeDistance } from '../../../utils/utils';
 
 @connect(({ oilfee, loading }) => ({
   oilfee,
-  loading: loading.effects['oilfee/fetch3Detail','oilfee/fetch3DetailExport'],
+  loading: loading.effects[('oilfee/fetch3Detail', 'oilfee/fetch3DetailExport')],
 }))
 @Form.create()
 export default class AccountDriverDetailComponent extends PureComponent {
   state = {
+    current: 1,
     modalVisible: false,
     formValues: {},
     rangePickerValue: getTimeDistance('month'),
@@ -22,6 +23,10 @@ export default class AccountDriverDetailComponent extends PureComponent {
 
   componentDidMount() {
     const { dispatch } = this.props;
+    const { rangePickerValue } = this.state; //startValue,endValue
+    const [startValue, endValue] = rangePickerValue;
+    const startTime = startValue.format('YYYY-MM-DD');
+    const endTime = endValue.format('YYYY-MM-DD');
     //帐户-司机油卡账户收支明细
     dispatch({
       type: 'oilfee/fetch3Detail',
@@ -31,25 +36,11 @@ export default class AccountDriverDetailComponent extends PureComponent {
         pageSize: 10,
         isCount: 1,
         driverId: this.props.driverId.employeeId,
+        startTime,
+        endTime,
       },
     });
   }
-
-  handleStandardTableChange = (pagination, filtersArg, sorter) => {
-    const { dispatch } = this.props;
-    const params = {
-      member_id: 26,
-      page: pagination.current,
-      pageSize: pagination.pageSize,
-      isCount: 1,
-      driverId: this.props.driverId.employeeId,
-    };
-    //帐户-司机油卡账户收支明细
-    dispatch({
-      type: 'oilfee/fetch3Detail',
-      payload: params,
-    });
-  };
 
   // 重置搜索条件
   handleFormReset = () => {
@@ -61,6 +52,10 @@ export default class AccountDriverDetailComponent extends PureComponent {
     dispatch({
       type: 'oilfee/fetch',
       payload: {},
+    }).then(() => {
+      this.setState({
+        current: 1
+      })
     });
   };
 
@@ -70,7 +65,7 @@ export default class AccountDriverDetailComponent extends PureComponent {
     const { dispatch, form } = this.props;
     const { rangePickerValue } = this.state; //startValue,endValue
     const [startValue, endValue] = rangePickerValue;
-    if(Object.keys(rangePickerValue).length != 0){
+    if (Object.keys(rangePickerValue).length != 0) {
       const startTime = startValue.format('YYYY-MM-DD');
       const endTime = endValue.format('YYYY-MM-DD');
       const params = {
@@ -84,7 +79,7 @@ export default class AccountDriverDetailComponent extends PureComponent {
         driverId: this.props.driverId.employeeId,
         transactionType: 0,
       };
-  
+
       // 表单校验
       form.validateFields((err, fieldsValue) => {
         if (err) return;
@@ -105,10 +100,65 @@ export default class AccountDriverDetailComponent extends PureComponent {
         dispatch({
           type: 'oilfee/fetch3Detail',
           payload: values,
+        }).then(() => {
+          this.setState({
+            current: 1
+          })
         });
       });
-    }else{message.error("日期不能为空");}
+    } else {
+      message.error('日期不能为空');
+    }
+  };
 
+  //列表变化翻页的回调
+  handleStandardTableChange = (pagination, filtersArg, sorter) => {
+    const { dispatch, form } = this.props;
+    const { rangePickerValue } = this.state; //startValue,endValue
+    const [startValue, endValue] = rangePickerValue;
+    if (Object.keys(rangePickerValue).length != 0) {
+      const startTime = startValue.format('YYYY-MM-DD');
+      const endTime = endValue.format('YYYY-MM-DD');
+      const params = {
+        //默认值
+        member_id: 26,
+        page: pagination.current,
+        pageSize: pagination.pageSize,
+        isCount: 1,
+        startTime,
+        endTime,
+        driverId: this.props.driverId.employeeId,
+        transactionType: 0,
+      };
+      // 表单校验
+      form.validateFields((err, fieldsValue) => {
+        if (err) return;
+        for (const prop in fieldsValue) {
+          if (
+            fieldsValue[prop] === '' ||
+            fieldsValue[prop] === '全部' ||
+            fieldsValue[prop] === undefined
+          ) {
+            delete fieldsValue[prop];
+          }
+        }
+        const values = {
+          ...params,
+          transactionType: fieldsValue.transactionType,
+        };
+        //帐户-司机油卡账户收支明细
+        dispatch({
+          type: 'oilfee/fetch3Detail',
+          payload: values,
+        }).then(() => {
+          this.setState({
+            current: pagination.current
+          })
+        });
+      });
+    } else {
+      message.error('日期不能为空');
+    }
   };
 
   //禁用当前日期之后的时间
@@ -125,46 +175,47 @@ export default class AccountDriverDetailComponent extends PureComponent {
     });
   };
 
-    //导出
-    handleExport = () => {
-      console.log('handleExport');
-      const { dispatch, form } = this.props;
-      const { getFieldValue } = form;
-      const { rangePickerValue } = this.state; //startValue,endValue
-      const [startValue, endValue] = rangePickerValue;
-      if(Object.keys(rangePickerValue).length != 0){
-        const startTime = startValue.format('YYYY-MM-DD');
-        const endTime = endValue.format('YYYY-MM-DD');
-        const params = {
-          actionType: 1,
-          startTime,
-          endTime,
-          driverId: this.props.driverId.employeeId,
-          transactionType: getFieldValue('transactionType'),
-        };
-        dispatch({
-          type: 'oilfee/fetch3DetailExport',
-          payload: params,
-        }).then(() => {
-          const { oilDriverInfodetailListExport } = this.props.oilfee;
-          switch (oilDriverInfodetailListExport.err) {
-            //err=0成功
-            case 0:
-              message.success(oilDriverInfodetailListExport.msg);
-              window.open(oilDriverInfodetailListExport.res.path);
-              break;
-            default:
-              message.warning(oilDriverInfodetailListExport.msg);
-          }
-        });
-      }else{message.error("日期不能为空");}
-      
-
-    };
+  //导出
+  handleExport = () => {
+    console.log('handleExport');
+    const { dispatch, form } = this.props;
+    const { getFieldValue } = form;
+    const { rangePickerValue } = this.state; //startValue,endValue
+    const [startValue, endValue] = rangePickerValue;
+    if (Object.keys(rangePickerValue).length != 0) {
+      const startTime = startValue.format('YYYY-MM-DD');
+      const endTime = endValue.format('YYYY-MM-DD');
+      const params = {
+        actionType: 1,
+        startTime,
+        endTime,
+        driverId: this.props.driverId.employeeId,
+        transactionType: getFieldValue('transactionType'),
+      };
+      dispatch({
+        type: 'oilfee/fetch3DetailExport',
+        payload: params,
+      }).then(() => {
+        const { oilDriverInfodetailListExport } = this.props.oilfee;
+        switch (oilDriverInfodetailListExport.err) {
+          //err=0成功
+          case 0:
+            message.success(oilDriverInfodetailListExport.msg);
+            window.open(oilDriverInfodetailListExport.res.path);
+            break;
+          default:
+            message.warning(oilDriverInfodetailListExport.msg);
+        }
+      });
+    } else {
+      message.error('日期不能为空');
+    }
+  };
 
   // 搜索区表单
   renderAdvancedForm() {
     const { getFieldDecorator } = this.props.form;
+    const { rangePickerValue } = this.state;
     return (
       <Form onSubmit={this.handleSearch} layout="inline">
         <Row gutter={{ md: 24, lg: 24, xl: 48 }}>
@@ -184,14 +235,12 @@ export default class AccountDriverDetailComponent extends PureComponent {
           </Col>
           <Col md={12} sm={24}>
             <FormItem label="起止日期">
-              {getFieldDecorator('range-picke')(
-                // < onChange={onChange} />
-                <RangePicker
-                  style={{ width: '100%' }}
-                  disabledDate={this.disabledDate}
-                  onChange={this.handleRangePickerChange}
-                />
-              )}
+              <RangePicker
+                style={{ width: '100%' }}
+                value={rangePickerValue}
+                disabledDate={this.disabledDate}
+                onChange={this.handleRangePickerChange}
+              />
             </FormItem>
           </Col>
           <div style={{ overflow: 'hidden' }}>
@@ -218,6 +267,7 @@ export default class AccountDriverDetailComponent extends PureComponent {
       showQuickJumper: true,
       showSizeChanger: true,
       total: count,
+      current: this.state.current,
       showTotal: () => `共计 ${count} 条`,
     };
 

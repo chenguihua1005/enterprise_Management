@@ -44,7 +44,7 @@ const rowSelection = {
 
 @connect(({ statement, loading }) => ({
   statement,
-  loading: loading.effects['statement/billlist','statement/billlistExport'],
+  loading: loading.effects[('statement/billlist', 'statement/billlistExport')],
 }))
 @Form.create()
 export default class Prestore extends PureComponent {
@@ -60,12 +60,17 @@ export default class Prestore extends PureComponent {
       currentId: -1,
       activeKey: panes[0].key,
       panes,
+      current: 1,
       rangePickerValue: getTimeDistance('month'),
     };
   }
 
   componentDidMount() {
     const { dispatch } = this.props;
+    const { rangePickerValue } = this.state; //startValue,endValue
+    const [startValue, endValue] = rangePickerValue;
+    const startTime = startValue.format('YYYY-MM-DD');
+    const endTime = endValue.format('YYYY-MM-DD');
     //结算 - 帐单列表或导出
     dispatch({
       type: 'statement/billlist',
@@ -74,6 +79,8 @@ export default class Prestore extends PureComponent {
         pageSize: 10,
         isCount: 1,
         billType: 1,
+        billStartTime: startTime,
+        billEndTime: endTime,
       },
     });
     //公共接口 - 帐单列表页面获取帐套公司列表
@@ -85,17 +92,51 @@ export default class Prestore extends PureComponent {
 
   // 切换页数
   handleStandardTableChange = (pagination, filtersArg, sorter) => {
-    const { dispatch } = this.props;
-    const params = {
-      page: pagination.current,
-      pageSize: pagination.pageSize,
-      isCount: 1,
-    };
+    const { dispatch, form } = this.props;
+    const { rangePickerValue } = this.state;
+    const [startValue, endValue] = rangePickerValue;
+    if (Object.keys(rangePickerValue).length != 0) {
+      const startTime = startValue.format('YYYY-MM-DD');
+      const endTime = endValue.format('YYYY-MM-DD');
+      form.validateFields((err, fieldsValue) => {
+        if (err) return;
+        for (const prop in fieldsValue) {
+          if (
+            fieldsValue[prop] === '' ||
+            fieldsValue[prop] === '全部' ||
+            fieldsValue[prop] === undefined
+          ) {
+            delete fieldsValue[prop];
+          }
+        }
+        const params = {
+          billSn: fieldsValue.billSn,
+          ownCompanyId: fieldsValue.ownCompanyId,
+          billStartTime: startTime,
+          billEndTime: endTime,
+          page: pagination.current,
+          pageSize: pagination.pageSize,
+          isCount: 1,
+          billType: 1,
+        };
 
-    dispatch({
-      type: 'statement/billlist',
-      payload: params,
-    });
+        const values = {
+          ...params,
+          transactionType: fieldsValue.transactionType,
+          direction: fieldsValue.direction,
+        };
+        dispatch({
+          type: 'statement/billlist',
+          payload: values,
+        }).then( () => {
+          this.setState({
+            current:pagination.current
+          })
+        });
+      });
+    } else {
+      message.error('日期不能为空');
+    }
   };
 
   //日期框设置值
@@ -113,14 +154,12 @@ export default class Prestore extends PureComponent {
   // 模糊查询
   handleSearch = e => {
     e.preventDefault();
-
     const { dispatch, form } = this.props;
-
     const { rangePickerValue } = this.state;
     const [startValue, endValue] = rangePickerValue;
     if (Object.keys(rangePickerValue).length != 0) {
-      const startTime = startValue.format('YYYY-MM-DD HH:mm:ss');
-      const endTime = endValue.format('YYYY-MM-DD HH:mm:ss');
+      const startTime = startValue.format('YYYY-MM-DD');
+      const endTime = endValue.format('YYYY-MM-DD');
       form.validateFields((err, fieldsValue) => {
         if (err) return;
         for (const prop in fieldsValue) {
@@ -151,6 +190,10 @@ export default class Prestore extends PureComponent {
         dispatch({
           type: 'statement/billlist',
           payload: values,
+        }).then( () => {
+          this.setState({
+            current:1
+          })
         });
       });
     } else {
@@ -163,10 +206,11 @@ export default class Prestore extends PureComponent {
     form.resetFields();
     this.setState({
       formValues: {},
-      // rangePickerValue: getTimeDistance('month'),
+      rangePickerValue: getTimeDistance('month'),
     });
-    // const startTime = startValue.format('YYYY-MM-DD');
-    // const endTime = endValue.format('YYYY-MM-DD');
+    const [startValue, endValue] = getTimeDistance('month');
+    const startTime = startValue.format('YYYY-MM-DD');
+    const endTime = endValue.format('YYYY-MM-DD');
 
     dispatch({
       type: 'statement/billlist',
@@ -175,9 +219,16 @@ export default class Prestore extends PureComponent {
         pageSize: 10,
         isCount: 1,
         billType: 1,
+        billStartTime: startTime,
+        billEndTime: endTime,
       },
+    }).then( () => {
+      this.setState({
+        current:1
+      })
     });
   };
+
   // 导出
   handlEexport = () => {
     const { dispatch, form } = this.props;
@@ -234,20 +285,13 @@ export default class Prestore extends PureComponent {
       message.error('日期不能为空');
     }
   };
+
   // 预存账单详情
   handleModalVisible = (flag, billNumber) => {
     // this.setState({
     //   modalVisible: !!flag,
     //   currentId: id,
     // });
-    const { form, dispatch } = this.props;
-
-    dispatch({
-      type: 'statement/billlist',
-      payload: {
-        billNumber: billNumber,
-      },
-    });
     const panes = this.state.panes;
     let activeKey = `${this.newTabIndex++}`;
     // 保持仅有两个 tabs
@@ -281,8 +325,14 @@ export default class Prestore extends PureComponent {
     }
     this.setState({ panes, activeKey });
   };
+
+  //tab切换回调
   onChange = activeKey => {
     const { dispatch } = this.props;
+    const { rangePickerValue } = this.state; //startValue,endValue
+    const [startValue, endValue] = rangePickerValue;
+    const startTime = startValue.format('YYYY-MM-DD');
+    const endTime = endValue.format('YYYY-MM-DD');
     this.setState({ activeKey });
     //结算 - 帐单列表或导出
     dispatch({
@@ -292,14 +342,18 @@ export default class Prestore extends PureComponent {
         pageSize: 10,
         isCount: 1,
         billType: 1,
+        billStartTime: startTime,
+        billEndTime: endTime,
       },
     });
   };
+
   // remove 触发器
   onEdit = (targetKey, action) => {
     console.log(action);
     this[action](targetKey);
   };
+
   getBillStatus = status => {
     if (status == 1) {
       return <Badge status="default" text="未结算" />;
@@ -313,6 +367,7 @@ export default class Prestore extends PureComponent {
     const { statement, loading, form } = this.props;
     const { billList, ownCompanyList } = statement;
     const { count, list: tableData } = billList;
+    const { rangePickerValue } = this.state;
 
     //结算主体
     const ownOptions = [];
@@ -331,6 +386,7 @@ export default class Prestore extends PureComponent {
       showQuickJumper: true,
       showSizeChanger: true,
       total: count,
+      current: this.state.current,
       showTotal: () => `共计 ${count} 条`,
     };
 
@@ -378,9 +434,9 @@ export default class Prestore extends PureComponent {
       {
         title: '账单核销状态',
         dataIndex: 'billStatus',
-        render: text => this.getBillStatus(text),
-        // render: text =>
-        //   text === 1 ? <Badge status="1" text="已核销" /> : <Badge status="2" text="未核销" />,
+        // render: text => this.getBillStatus(text),
+        render: text =>
+          text === 1 ? <Badge status="1" text="已核销" /> : <Badge status="2" text="未核销" />,
       },
     ];
 
@@ -418,16 +474,12 @@ export default class Prestore extends PureComponent {
                   <Row gutter={{ md: 8, lg: 24, xl: 48 }}>
                     <Col md={12} sm={24}>
                       <FormItem label="账单时间">
-                        {form.getFieldDecorator('time')(
-                          <RangePicker
-                            allowClear
-                            showTime
-                            disabledDate={this.disabledDate}
-                            placeholder={['开始日期', '结束日期']}
-                            style={{ width: '100%' }}
-                            onChange={this.handleRangePickerChange}
-                          />
-                        )}
+                        <RangePicker
+                          style={{ width: '100%' }}
+                          value={rangePickerValue}
+                          disabledDate={this.disabledDate}                          
+                          onChange={this.handleRangePickerChange}
+                        />
                       </FormItem>
                     </Col>
                     <Col md={12} sm={24}>
@@ -438,9 +490,13 @@ export default class Prestore extends PureComponent {
                         <Button style={{ marginLeft: 8 }} onClick={this.handleFormReset}>
                           重置
                         </Button>
-                        <Button style={{ marginLeft: 8 }} onClick={this.handlEexport} type="primary">
-                      <Icon type="export" />导出
-                    </Button>
+                        <Button
+                          style={{ marginLeft: 8 }}
+                          onClick={this.handlEexport}
+                          type="primary"
+                        >
+                          <Icon type="export" />导出
+                        </Button>
                       </span>
                     </Col>
                   </Row>

@@ -10,13 +10,13 @@ export default {
   },
 
   effects: {
-    *submit({ payload }, { call, put }) {
-      const response = yield call(fakeRegister, payload);
-      yield put({
-        type: 'registerHandle',
-        payload: response,
-      });
-    },
+    // *submit({ payload }, { call, put }) {
+    //   const response = yield call(fakeRegister, payload);
+    //   yield put({
+    //     type: 'registerHandle',
+    //     payload: response,
+    //   });
+    // },
   },
 
   reducers: {

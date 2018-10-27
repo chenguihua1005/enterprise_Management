@@ -1,23 +1,21 @@
 import React, { PureComponent, Fragment } from 'react';
 import { connect } from 'dva';
 import { Row, Col, Card, Form, Select, Button, Table, DatePicker, Icon, message } from 'antd';
-
-const { RangePicker } = DatePicker;
-
 import styles from '../OilFee.less';
-
-const FormItem = Form.Item;
-const { Option } = Select;
 import moment from 'moment';
 import { getTimeDistance } from '../../../utils/utils';
+const { RangePicker } = DatePicker;
+const FormItem = Form.Item;
+const { Option } = Select;
 
 @connect(({ oilfee, loading }) => ({
   oilfee,
-  loading: loading.effects['oilfee/fetch2Detail','oilfee/fetch1ListExport'],
+  loading: loading.effects[('oilfee/fetch2Detail', 'oilfee/fetch1ListExport')],
 }))
 @Form.create()
 export default class AccountBranchDetailComponent extends PureComponent {
   state = {
+    current: 1,
     modalVisible: false,
     formValues: {},
     rangePickerValue: getTimeDistance('month'),
@@ -25,6 +23,10 @@ export default class AccountBranchDetailComponent extends PureComponent {
 
   componentDidMount() {
     const { dispatch, companyId } = this.props;
+    const { rangePickerValue } = this.state; //startValue,endValue
+    const [startValue, endValue] = rangePickerValue;
+    const startTime = startValue.format('YYYY-MM-DD');
+    const endTime = endValue.format('YYYY-MM-DD');
     //帐户-公司账户流水明细（总公司/分公司)
     dispatch({
       type: 'oilfee/fetch2Detail',
@@ -34,31 +36,16 @@ export default class AccountBranchDetailComponent extends PureComponent {
         page: 1,
         pageSize: 10,
         isCount: 1,
+        startTime,
+        endTime,
       },
     });
   }
-
-  handleStandardTableChange = (pagination, filtersArg, sorter) => {
-    const { dispatch, companyId } = this.props;
-    const params = {
-      member_id: 26,
-      branchId: companyId,
-      page: pagination.current,
-      pageSize: pagination.pageSize,
-      isCount: 1,
-    };
-    //帐户-公司账户流水明细（总公司/分公司)
-    dispatch({
-      type: 'oilfee/fetch2Detail',
-      payload: params,
-    });
-  };
 
   // 搜索
   handleSearch = e => {
     e.preventDefault();
     const { dispatch, form, companyId } = this.props;
-    const { getFieldValue } = form;
     const { rangePickerValue } = this.state; //startValue,endValue
     const [startValue, endValue] = rangePickerValue;
     if (Object.keys(rangePickerValue).length != 0) {
@@ -96,6 +83,61 @@ export default class AccountBranchDetailComponent extends PureComponent {
         dispatch({
           type: 'oilfee/fetch2Detail',
           payload: values,
+        }).then(() => {
+          this.setState({
+            current: 1
+          })
+        });
+      });
+    } else {
+      message.error('日期不能为空');
+    }
+  };
+
+  //列表变化翻页的回调
+  handleStandardTableChange = (pagination, filtersArg, sorter) => {
+    const { dispatch, form, companyId } = this.props;
+    const { rangePickerValue } = this.state; //startValue,endValue
+    const [startValue, endValue] = rangePickerValue;
+    if (Object.keys(rangePickerValue).length != 0) {
+      const startTime = startValue.format('YYYY-MM-DD');
+      const endTime = endValue.format('YYYY-MM-DD');
+      const params = {
+        member_id: 26,
+        branchId: companyId,
+        page: pagination.current,
+        pageSize: pagination.pageSize,
+        isCount: 1,
+        startTime,
+        endTime,
+        transactionType: 0,
+        direction: 0,
+      };
+      // 表单校验
+      form.validateFields((err, fieldsValue) => {
+        if (err) return;
+        for (const prop in fieldsValue) {
+          if (
+            fieldsValue[prop] === '' ||
+            fieldsValue[prop] === '全部' ||
+            fieldsValue[prop] === undefined
+          ) {
+            delete fieldsValue[prop];
+          }
+        }
+        const values = {
+          ...params,
+          transactionType: fieldsValue.transactionType,
+          direction: fieldsValue.direction,
+        };
+        //帐户-公司账户流水明细（总公司/分公司)
+        dispatch({
+          type: 'oilfee/fetch2Detail',
+          payload: values,
+        }).then(() => {
+          this.setState({
+            current: pagination.current
+          })
         });
       });
     } else {
@@ -164,6 +206,7 @@ export default class AccountBranchDetailComponent extends PureComponent {
   // 搜索区表单
   renderAdvancedForm() {
     const { getFieldDecorator } = this.props.form;
+    const { rangePickerValue } = this.state;
     return (
       <Form onSubmit={this.handleSearch} layout="inline">
         <Row gutter={{ md: 24, lg: 24, xl: 48 }}>
@@ -198,14 +241,12 @@ export default class AccountBranchDetailComponent extends PureComponent {
           </Col>
           <Col md={12} sm={24}>
             <FormItem label="起止日期">
-              {getFieldDecorator('range-picke')(
-                // < onChange={onChange} />
-                <RangePicker
-                  style={{ width: '100%' }}
-                  disabledDate={this.disabledDate}
-                  onChange={this.handleRangePickerChange}
-                />
-              )}
+              <RangePicker
+                style={{ width: '100%' }}
+                value={rangePickerValue}
+                disabledDate={this.disabledDate}
+                onChange={this.handleRangePickerChange}
+              />
             </FormItem>
           </Col>
         </Row>
@@ -236,6 +277,7 @@ export default class AccountBranchDetailComponent extends PureComponent {
     const paginationProps = {
       showQuickJumper: true,
       showSizeChanger: true,
+      current: this.state.current,
       total: count,
       showTotal: () => `共计 ${count} 条`,
     };

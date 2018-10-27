@@ -7,12 +7,37 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>企业管理后台</title>
   <link rel="icon" href="/favicon.png" type="image/x-icon">
-  <script src="https://cdn.bootcss.com/rollbar.js/2.4.0/rollbar.min.js"></script>
-  <script src="https://gw.alipayobjects.com/os/antv/assets/data-set/0.8.7/data-set.min.js"></script>
-<link href="/index.53fcf2c6.css" rel="stylesheet"></head>
+  <!-- <script src="https://cdn.bootcss.com/rollbar.js/2.4.0/rollbar.min.js"></script> -->
+  <script>
+    (function(a,h,c,b,f,g){a["UdeskApiObject"]=f;a[f]=a[f]||function(){(a[f].d=a[f].d||[]).push(arguments)};g=h.createElement(c);g.async=1;g.charset="utf-8";g.src=b;c=h.getElementsByTagName(c)[0];c.parentNode.insertBefore(g,c)})(window,document,"script","//assets-cli.udesk.cn/im_client/js/udeskApi.js","ud");
+    ud({
+        "code": "2d2a5g8c",
+        "link": "//51zhaoyou.udesk.cn/im_client/?web_plugin_id=56895",
+        "session_key":parseInt(10000000*Math.random()).toString(16).toUpperCase(),
+        "manualInit":true,
+        "noBubble":true,
+        targetSelector:"#btn_udesk_im",
+        "onReady":function(){
+          console.log('初始化完成');
+          let accessToken=window.localStorage.getItem('accessToken');
+          if(accessToken){
+            // console.log('登录',window.ud);
+            window.ud.init();
+            // window.ud.showPanel();
+          }else{
+            console.log('退出',window.ud);
+            // window.ud.hidePanel();
+          }
+        }
+    });
+    </script>
+<link href="/index.fa1e3968.css" rel="stylesheet"></head>
 
 <body>
   <div id="root"></div>
-<script type="text/javascript" src="/index.6c5a06a2.js"></script></body>
+  <div id="btn_udesk_im" style="position: fixed;bottom: 10px;right: 26px;display: none;z-index: 10000;">
+    <img src="/udeskIm32.png"/>
+  </div>
+<script type="text/javascript" src="/index.4398f7e8.js"></script></body>
 
 </html>

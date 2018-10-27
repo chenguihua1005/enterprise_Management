@@ -17,31 +17,40 @@ export default {
   effects: {
     *statisticsInfo({ payload }, { call, put }) {
       const response = yield call(queryStatisticsInfo, payload);
-      yield put({
-        type: 'save',
-        payload: {
-          statisticsInfo: response.res,
-        },
-      });
+      if (response) {
+        yield put({
+          type: 'save',
+          payload: {
+            statisticsInfo: response.res,
+          },
+        });
+      }
+      
     },
     *addOilStatistics({ payload }, { call, put }) {
       const response = yield call(queryAddOilStatistics, payload);
-      yield put({
-        type: 'save',
-        payload: {
-          addOilStatistics: response.res,
-        },
-      });
+      if (response) {
+        yield put({
+          type: 'save',
+          payload: {
+            addOilStatistics: response.res,
+          },
+        });
+      }
+      
     },
     
     *branchAddOilStatistics({ payload }, { call, put }) {
       const response = yield call(queryBranchAddOilStatistics, payload);
-      yield put({
-        type: 'save',
-        payload: {
-          branchAddOilStatistics: response.res,
-        },
-      });
+      if (response) {
+        yield put({
+          type: 'save',
+          payload: {
+            branchAddOilStatistics: response.res,
+          },
+        });
+      }
+      
     },
   },
 

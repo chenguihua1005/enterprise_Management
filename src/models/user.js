@@ -22,7 +22,7 @@ export default {
         type: 'saveCurrentUser',
         payload: response,
       });
-    },
+    }
   },
 
   reducers: {

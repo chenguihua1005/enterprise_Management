@@ -41,8 +41,9 @@ export function getTimeDistance(type) {
     const nextMonth = nextDate.month();
 
     return [
-      moment(`${year}-${fixedZero(month + 1)}-01 00:00:00`),
-      moment(moment(`${nextYear}-${fixedZero(nextMonth + 1)}-01 00:00:00`).valueOf() - 1000),
+      moment(`${year}-${fixedZero(month + 1)}-01`),
+      // moment(moment(`${nextYear}-${fixedZero(nextMonth + 1)}-01`).valueOf() - 1000),
+      moment(now), //本月只计算到当前日期
     ];
   }
 

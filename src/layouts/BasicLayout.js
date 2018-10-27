@@ -15,8 +15,10 @@ import NotFound from '../routes/Exception/404';
 import { getRoutes } from '../utils/utils';
 import Authorized from '../utils/Authorized';
 import { getMenuData } from '../common/menu';
+import sha1 from 'crypto-js/sha1';
 // import logo from '../assets/logo.svg';
 import logo from '../assets/logo.png';
+import { reloadAuthorized } from '../utils/Authorized';
 
 const { Content, Header, Footer } = Layout;
 const { AuthorizedRoute, check } = Authorized;
@@ -125,10 +127,37 @@ class BasicLayout extends React.PureComponent {
       }
     // });
 
+    //udesk客服组件接入，客户认证，手动初始化
+        //随机数
+        let noncevalue=parseInt(1000000*Math.random()).toString(16)+parseInt(1000000*Math.random()).toString(16)+parseInt(1000000*Math.random()).toString(16);
+        //时间戳
+        let timestampvalue=(new Date()).valueOf();
+        //客户key
+        let web_token_value=window.localStorage.getItem('mobilePhone');
+        //加密算法
+        let sign_str = `nonce=${noncevalue}&timestamp=${timestampvalue}&web_token=${web_token_value}&d34ab0d37757ed23b62712cced140fde`;
+        sign_str = sha1(sign_str).toString().toUpperCase();
+        window.ud("customer",{
+        "c_name": window.localStorage.getItem('realName'),
+        "c_phone":window.localStorage.getItem('mobilePhone'),
+        "c_org":window.localStorage.getItem('branchName'),
+        "c_email":"test@51zhaoyou.com",
+        "nonce":noncevalue,
+        "signature": sign_str,
+        "timestamp": timestampvalue,
+        "web_token": web_token_value
+        })
+        // window.ud.init();
+        document.getElementById("btn_udesk_im").style.display="block";
+  }
+  componentWillMount(){
+    this.props.history.push;
   }
 
   componentWillUnmount() {
     unenquireScreen(this.enquireHandler);
+    document.getElementById("btn_udesk_im").style.display="none";
+    // window.location.reload();
   }
 
   getPageTitle() {
@@ -152,7 +181,6 @@ class BasicLayout extends React.PureComponent {
     // According to the url parameter to redirect
     // 这里是重定向的,重定向到 url 的 redirect 参数所示地址
     const urlParams = new URL(window.location.href);
-
     const redirect = urlParams.searchParams.get('redirect');
     // Remove the parameters in the url
     // if (redirect) {
@@ -170,10 +198,8 @@ class BasicLayout extends React.PureComponent {
       // window.history.replaceState(null, 'login', '#/user/login');
       // localStorage.setItem('antd-pro-authority', 'guest');
       return 'user/login';
-
       // localStorage.setItem('antd-pro-authority', 'guest');
-      //   reloadAuthorized();
-
+        reloadAuthorized();
     }else{
       const authorizedPath = Object.keys(routerData).find(
         item => check(routerData[item].authority, item) && item !== '/'
@@ -202,13 +228,20 @@ class BasicLayout extends React.PureComponent {
       });
     }
   };
-
+  handleNoticeVisibleChange = visible => {
+    if (visible) {
+      this.props.dispatch({
+        type: 'global/fetchNotices',
+      });
+    }
+  };
 
   render() {
     const {
       currentUsername,
       collapsed,
       notices,
+      fetchingNotices,
       routerData,
       match,
       location,
@@ -234,8 +267,8 @@ class BasicLayout extends React.PureComponent {
             <GlobalHeader
               logo={logo}
               currentUsername={currentUsername}
-              // fetchingNotices={fetchingNotices}
-              // notices={notices}
+              fetchingNotices={fetchingNotices}
+              notices={notices}
               collapsed={collapsed}
               isMobile={mb}
               onNoticeClear={this.handleNoticeClear}

@@ -22,12 +22,15 @@ export default {
   effects: {
     *searchOrder({ payload }, { call, put }) {
       const response = yield call(querySearchOrder, payload);
-      yield put({
-        type: 'save',
-        payload: {
-          orderList: response.res
-        },
-      });
+      if (response) {
+        yield put({
+          type: 'save',
+          payload: {
+            orderList: response.res
+          },
+        });
+      }
+      
     },
     *searchOrderExport({ payload }, { call, put }) {
       const response = yield call(querySearchOrder, payload);
@@ -40,42 +43,54 @@ export default {
     },
     *skidList({ payload }, { call, put }) {
       const response = yield call(querySkidList, payload);
-      yield put({
-        type: 'save',
-        payload: {
-          skidList: response.res
-        },
-      });
+      if (response) {
+        yield put({
+          type: 'save',
+          payload: {
+            skidList: response.res
+          },
+        });
+      }
+      
     },
    // 分公司
     *fetchBranchCompany({ payload }, { call, put }) {
       const response = yield call(queryBasicinfoBranch, payload);
-      yield put({
-        type: 'save',
-        payload: {
-          branchCompany: response.res.info
-        },
-      });
+      if (response) {
+        yield put({
+          type: 'save',
+          payload: {
+            branchCompany: response.res.info
+          },
+        });
+      }
+      
     },
     // 用油类型
     *fetchGoodsCompany({ payload }, { call, put }) {
       const response = yield call(queryGoodsList, payload);
-      yield put({
-        type: 'save',
-        payload: {
-          GoodsCompany: response.res
-        },
-      });
+      if (response) {
+        yield put({
+          type: 'save',
+          payload: {
+            GoodsCompany: response.res
+          },
+        });
+      }
+     
     },
     // 城市
     *regionList({ payload }, { call, put }) {
       const response = yield call(queryRegionList, payload);
-      yield put({
-        type: 'save',
-        payload: {
-          regionCompany: response.res
-        },
-      });
+      if (response) {
+        yield put({
+          type: 'save',
+          payload: {
+            regionCompany: response.res
+          },
+        });
+      }
+      
     },
     // 地区
     *regionList2({ payload }, { call, put }) {

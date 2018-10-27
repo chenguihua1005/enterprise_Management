@@ -15,21 +15,20 @@ import {
   message,
   Modal,
   Upload,
+  notification,
 } from 'antd';
 import reqwest from 'reqwest';
-const { RangePicker } = DatePicker;
-
+import { baseUrl } from '../../services/api';
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
 import OilFeeRecycleSelect from './components/OilFeeRecycleSelect';
 import OilFeeGrant from './components/OilFeeGrant';
-
 import styles from './OilFee.less';
-
+import moment from 'moment';
+import { getTimeDistance } from '../../utils/utils';
+const { RangePicker } = DatePicker;
 const FormItem = Form.Item;
 const { Option } = Select;
 const { TabPane } = Tabs;
-import moment from 'moment';
-import { getTimeDistance } from '../../utils/utils';
 
 //批量导入，弹框
 const CreateForm2 = Form.create()(props => {
@@ -46,14 +45,14 @@ const CreateForm2 = Form.create()(props => {
   const okHandle = () => {
     form.validateFields((err, fieldsValue) => {
       if (err) return;
-      form.resetFields();
+      //form.resetFields();
       handleAdd2(fieldsValue);
     });
   };
   return (
     <Modal
       centered
-      title="油费批量导入"
+      title="油费批量发放"
       width={850}
       visible={importModal}
       okText="上传"
@@ -91,18 +90,20 @@ const CreateForm2 = Form.create()(props => {
   );
 });
 
-@connect(({ oilfee, loading }) => ({
+@connect(({ oilfee, basicinfo, loading }) => ({
   oilfee,
-  loading: loading.effects['oilfee/fetch4Detail','oilfee/fetch4DetailExport'],
+  basicinfo,
+  loading: loading.effects['oilfee/fetch4Detail', 'oilfee/fetch4DetailExport'],
 }))
 @Form.create()
 export default class ProvideComponent extends PureComponent {
   state = {
+    current: 1,
     grantModalVisible: false,
     formValues: {},
     recycleModalVisible: false,
     rangePickerValue: getTimeDistance('month'),
-    activeKey: 'add',
+    activeKey: 'list',
     importModal: false,
     //上传
     fileList: [],
@@ -110,6 +111,10 @@ export default class ProvideComponent extends PureComponent {
 
   componentDidMount() {
     const { dispatch } = this.props;
+    const { rangePickerValue } = this.state; //startValue,endValue
+    const [startValue, endValue] = rangePickerValue;
+    const startTime = startValue.format('YYYY-MM-DD');
+    const endTime = endValue.format('YYYY-MM-DD');
     //总账户详情
     dispatch({
       type: 'oilfee/fetch1',
@@ -130,12 +135,19 @@ export default class ProvideComponent extends PureComponent {
         page: 1,
         pageSize: 10,
         isCount: 1,
+        startTime,
+        endTime,
       },
     });
   }
+
   // 子组件使用的切换 tabs 方式
   activeKeyChange = key => {
     const { dispatch } = this.props;
+    const { rangePickerValue } = this.state; //startValue,endValue
+    const [startValue, endValue] = rangePickerValue;
+    const startTime = startValue.format('YYYY-MM-DD');
+    const endTime = endValue.format('YYYY-MM-DD');
     this.setState({
       activeKey: key,
     });
@@ -149,6 +161,8 @@ export default class ProvideComponent extends PureComponent {
           page: 1,
           pageSize: 10,
           isCount: 1,
+          startTime,
+          endTime,
         },
       });
     }
@@ -162,21 +176,7 @@ export default class ProvideComponent extends PureComponent {
     });
   };
 
-  handleStandardTableChange = (pagination, filtersArg, sorter) => {
-    const { dispatch } = this.props;
-    const params = {
-      member_id: 26,
-      page: pagination.current,
-      pageSize: pagination.pageSize,
-      isCount: 1,
-    };
-
-    dispatch({
-      type: 'oilfee/fetch4Detail',
-      payload: params,
-    });
-  };
-
+  //回收Modal显示控制
   handleModalVisible(status) {
     this.setState({
       grantModalVisible: status,
@@ -195,10 +195,26 @@ export default class ProvideComponent extends PureComponent {
     form.resetFields();
     this.setState({
       formValues: {},
+      rangePickerValue: getTimeDistance('month'),
     });
+    const [startValue, endValue] = getTimeDistance('month');
+    const startTime = startValue.format('YYYY-MM-DD');
+    const endTime = endValue.format('YYYY-MM-DD');
+    //油费发放详情
     dispatch({
       type: 'oilfee/fetch4Detail',
-      payload: {},
+      payload: {
+        member_id: 26,
+        page: 1,
+        pageSize: 10,
+        isCount: 1,
+        startTime,
+        endTime,
+      },
+    }).then(() => {
+      this.setState({
+        current: 1
+      })
     });
   };
 
@@ -237,9 +253,63 @@ export default class ProvideComponent extends PureComponent {
           grantType: fieldsValue.grantType,
           branchId: fieldsValue.branchId,
         };
+        //油费发放详情
         dispatch({
           type: 'oilfee/fetch4Detail',
           payload: values,
+        }).then(() => {
+          this.setState({
+            current: 1
+          })
+        });
+      });
+    } else {
+      message.error('日期不能为空');
+    }
+  };
+
+  //列表变化翻页的回调
+  handleStandardTableChange = (pagination, filtersArg, sorter) => {
+    const { dispatch, form } = this.props;
+    const { rangePickerValue } = this.state; //startValue,endValue
+    const [startValue, endValue] = rangePickerValue;
+    if (Object.keys(rangePickerValue).length != 0) {
+      const startTime = startValue.format('YYYY-MM-DD');
+      const endTime = endValue.format('YYYY-MM-DD');
+      const params = {
+        member_id: 26,
+        page: pagination.current,
+        pageSize: pagination.pageSize,
+        isCount: 1,
+        startTime,
+        endTime,
+      };
+      // 表单校验
+      form.validateFields((err, fieldsValue) => {
+        if (err) return;
+        for (const prop in fieldsValue) {
+          if (
+            fieldsValue[prop] === '' ||
+            fieldsValue[prop] === '全部' ||
+            fieldsValue[prop] === undefined
+          ) {
+            delete fieldsValue[prop];
+          }
+        }
+        const values = {
+          ...params,
+          commonField: fieldsValue.commonField,
+          grantType: fieldsValue.grantType,
+          branchId: fieldsValue.branchId,
+        };
+        //油费发放详情
+        dispatch({
+          type: 'oilfee/fetch4Detail',
+          payload: values,
+        }).then(() => {
+          this.setState({
+            current: pagination.current
+          })
         });
       });
     } else {
@@ -302,18 +372,36 @@ export default class ProvideComponent extends PureComponent {
     }
   };
 
+  countDown = () => {
+    let secondsToGo = 5;
+    const modal = Modal.success({
+      // title: 'This is a notification message',
+      content: `
+      文件上传中，可能需要几分钟处理时间，您可以先操作其他页面，处理完成后系统会提示您`,
+    });
+  };
+
   //上传
   handleAdd2 = fields => {
-    // const { dispatch } = this.props;
+    const { rangePickerValue } = this.state; //startValue,endValue
+    const [startValue, endValue] = rangePickerValue;
+    const startTime = startValue.format('YYYY-MM-DD');
+    const endTime = endValue.format('YYYY-MM-DD');
     const { fileList } = this.state;
     const formData = new FormData();
+    if(fileList.length == 0) {
+      message.warning("请先上传文件！");
+      return;
+    }else if(fileList.length >= 2) {
+      message.warning("一次只能上传一个文件！");
+      return;
+    }
     fileList.forEach(file => {
       formData.append('files', file);
     });
     // You can use any AJAX library you like
     reqwest({
-      // url: '//jsonplaceholder.typicode.com/posts/',
-      url: '//test.api-bms.51zhaoyou.com/bms/oilAccount/OABatchDistribute',
+      url: baseUrl + 'oilAccount/AsnycDistribute',
       method: 'post',
       processData: false,
       headers: {
@@ -321,20 +409,205 @@ export default class ProvideComponent extends PureComponent {
       },
       data: formData,
       success: response => {
-        // message.success('upload successfully.');
-        message.success(response.msg);
-        //部分成功，response.res.result == 0,response.res.path != "",下载出错提示文件
-        if (response.res.result == 0 && response.res.path != '') {
-          window.open(response.res.path);
+        const { dispatch } = this.props;
+        if (response.err === 0) {
+          //清空excel列表
+          this.setState({
+            fileList: [],
+          });
+          this.setState({
+            importModal: false,
+          });
+          this.countDown();
+          setInterval(this.getinfo(),2000);
+
+          // // 获取异步上传文件已处理未读个数
+          // dispatch({
+          //   type: 'basicinfo/dingNotice',
+          //   payload: {},
+          // }).then(() => {
+          //   const { dingNotice } = this.props.basicinfo;
+          //   if (dingNotice.num > 0) {
+          //     //异步文件未读消息列表
+          //     dispatch({
+          //       type: 'basicinfo/noticeList',
+          //       payload: {
+          //         isCount: 1,
+          //       },
+          //     }).then(() => {
+          //       const { noticeList } = this.props.basicinfo;
+          //       const list = noticeList.list;
+          //       this.openNotification(list);
+          //       //刷新
+          //       //总账户详情
+          //       dispatch({
+          //         type: 'oilfee/fetch1',
+          //         payload: { member_id: 26 },
+          //       });
+
+          //       //油费发放详情
+          //       dispatch({
+          //         type: 'oilfee/fetch4Detail',
+          //         payload: {
+          //           member_id: 26,
+          //           page: 1,
+          //           pageSize: 10,
+          //           isCount: 1,
+          //           startTime,
+          //           endTime,
+          //         },
+          //       });
+          //     });
+          //   }
+          // });
+        } else {
+          //清空excel列表
+          this.setState({
+            fileList: [],
+          });
+          message.error(response.msg);
         }
-        this.setState({
-          modalVisible: false,
-        });
+
+        // message.success(response.msg);
+        // //部分成功，response.res.result == 0,response.res.path != "",下载出错提示文件
+        // if (response.res.result == 0 && response.res.path != '') {
+        //   window.open(response.res.path);
+        // }
+        // this.setState({
+        //   modalVisible: false,
+        // });
       },
       error: err => {
-        message.error('upload failed.');
+        //清空excel列表
+        this.setState({
+          fileList: [],
+        });
+        message.error('上传错误!');
         console.log(err);
       },
+    });
+  };
+  getinfo=()=>{
+    const { dispatch, form } = this.props;
+   // 获取异步上传文件已处理未读个数
+   dispatch({
+    type: 'basicinfo/dingNotice',
+    payload: {},
+  }).then(() => {
+    const { dingNotice } = this.props.basicinfo;
+    if (dingNotice.num > 0) {
+      //异步文件未读消息列表
+      dispatch({
+        type: 'basicinfo/noticeList',
+        payload: {
+          isCount: 1,
+        },
+      }).then(() => {
+        const { noticeList } = this.props.basicinfo;
+        const list = noticeList.list;
+        this.openNotification(list);
+        // //清空所属分公司旧数据
+        // form.resetFields('belongCompanyId');
+        
+        //刷新
+        //司机管理下拉列表
+        dispatch({
+          type: 'basicinfo/fetch2',
+          payload: {
+            member_id: 4,
+            page: 1,
+            pageSize: 10,
+            isCount: 1,
+          },
+        });
+        return false
+      });
+    }else{
+      this.getinfo();
+    }
+  });
+  }
+  openNotification = list => {
+    const key = `open${Date.now()}`;
+    for (let i = 0; i < list.length; i++) {
+      const tmp = list[i];
+      // const notice = tmp.notice_type = 300 ? '油费管理' : '司机管理';
+      if (tmp.err === 0) {
+        notification.success({
+          key,
+          // duration: 0,
+          placement: 'bottomRight',
+          message: (tmp.notice_type === 300 ? '油费管理' : '司机管理') + '文件处理完成！',
+          description: (
+            <div>
+              <p>{tmp.msg}</p>
+              <a href="#" />
+            </div>
+          ),
+          style: {
+            width: 600,
+            marginLeft: 335 - 600,
+          },
+          icon: <Icon type="check-circle" theme="outlined" style={{ color: '#108ee9' }} />,
+          onClose: this.close(key),
+        });
+      } else if (tmp.err === 1) {
+        notification.warning({
+          key,
+          duration: 0,
+          placement: 'bottomRight',
+          message: (tmp.notice_type === 300 ? '油费管理' : '司机管理') + '文件处理完成！',
+          description: (
+            <div>
+              <p>{tmp.msg}</p>
+              <a onClick={() => this.errorDownLoad(tmp.resultFile, key)}>下载错误失败文件</a>
+            </div>
+          ),
+          style: {
+            width: 600,
+            marginLeft: 335 - 600,
+          },
+          icon: <Icon type="exclamation-circle" theme="outlined" style={{ color: '#108ee9' }} />,
+          onClose: this.close(key),
+        });
+      } else {
+        notification.error({
+          key,
+          duration: 0,
+          placement: 'bottomRight',
+          message: (tmp.notice_type === 300 ? '油费管理' : '司机管理') + '文件处理完成！',
+          description: (
+            <div>
+              <p>{tmp.msg}</p>
+              <a onClick={() => this.errorDownLoad(tmp.resultFile, key)}>下载错误失败文件</a>
+            </div>
+          ),
+          style: {
+            width: 600,
+            marginLeft: 335 - 600,
+          },
+          icon: <Icon type="close-circle" theme="outlined" style={{ color: '#f81d22' }} />,
+          onClose: this.close(key),
+        });
+      }
+    }
+  };
+
+  // 下载导入失败文件
+  errorDownLoad = (url, key) => {
+    window.open(url);
+    notification.close(key);
+  };
+
+   // 关闭异步弹框
+   close = (key) => {
+    notification.close(key);
+  };
+
+  //发放
+  handleProvide = () => {
+    this.setState({
+      activeKey: 'add',
     });
   };
 
@@ -343,7 +616,11 @@ export default class ProvideComponent extends PureComponent {
     this.setState({
       importModal: !!flag,
     });
-    console.log('->setImportmodal');
+    // console.log('->setImportmodal');
+    //清空excel列表
+    this.setState({
+      fileList: [],
+    });
   };
 
   // 下载模板
@@ -373,10 +650,11 @@ export default class ProvideComponent extends PureComponent {
 
   render() {
     const { oilfee, loading } = this.props;
-    const { oilAccountInfo, providedetailList, branchCompany } = oilfee;
+    const { oilAccountInfo, oilAccountInfoAmount, providedetailList, branchCompany } = oilfee;
     const { count, list: tabledata } = providedetailList;
     const { getFieldDecorator } = this.props.form;
     const { importModal } = this.state;
+    const { rangePickerValue } = this.state;
 
     //所属分公司
     const branchOptions = [];
@@ -384,10 +662,7 @@ export default class ProvideComponent extends PureComponent {
     if (branchCompany != undefined && branchCompany.length > 0) {
       branchCompany.forEach(item => {
         branchOptions.push(
-          <Option
-            key={item.companyBranchId}
-            value={item.companyBranchId}
-          >
+          <Option key={item.companyBranchId} value={item.companyBranchId}>
             {item.companyBranchName}
           </Option>
         );
@@ -397,6 +672,7 @@ export default class ProvideComponent extends PureComponent {
     const propsUpload = {
       action: '//test.api-bms.51zhaoyou.com/bms/oilAccount/OABatchDistribute',
       // action: '//jsonplaceholder.typicode.com/posts/',
+      accept: '.xlsx',
       onRemove: file => {
         this.setState(({ fileList }) => {
           const index = fileList.indexOf(file);
@@ -429,8 +705,10 @@ export default class ProvideComponent extends PureComponent {
       showQuickJumper: true,
       showSizeChanger: true,
       total: count,
+      current: this.state.current,
       showTotal: () => `共计 ${count} 条`,
     };
+
     const columnData = [
       {
         title: '发放时间',
@@ -463,23 +741,38 @@ export default class ProvideComponent extends PureComponent {
         <Row gutter={24} style={{ marginBottom: '24px' }}>
           <Col xs={24}>
             <Card bordered={false}>
-              <h3>
-                您的账户剩余可发放额度：<span className={styles.bigFontSize}>{`${
-                  oilAccountInfo.accountAmount
-                }元`}</span>
-              </h3>
+              <Col span={15}>
+                <h3>
+                  您的账户剩余可发放额度：<span
+                    className={styles.bigFontSize}
+                  >{`${oilAccountInfoAmount}元`}</span>
+                </h3>
+              </Col>
+              <Col span={3}>
+                <Button type="primary" onClick={() => this.handleProvide()}>
+                  <Icon type="plus" />发放
+                </Button>
+              </Col>
+              <Col span={3}>
+                <Button type="primary" onClick={() => this.setImportmodal(true)}>
+                  <Icon type="upload" />批量发放
+                </Button>
+              </Col>
+              <Col span={3}>
+                <Button
+                  type="primary"
+                  icon="delete"
+                  onClick={() => this.handleRecycleModalVisible(true)}
+                >
+                  回收
+                </Button>
+              </Col>
             </Card>
           </Col>
         </Row>
         <Card bordered={false} bodyStyle={{ padding: 0 }}>
           {/* 油费发放列表 */}
           <Tabs size="large" activeKey={this.state.activeKey} onChange={this.onChangeActiveKey}>
-            {/* 新增发放油费 */}
-            <TabPane tab="油费发放" key="add">
-              <Card bordered={false}>
-                <OilFeeGrant activeKey={this.activeKeyChange} />
-              </Card>
-            </TabPane>
             <TabPane tab="发放明细" key="list" style={{ marginBottom: 0 }}>
               <Card bordered={false}>
                 <div className={styles.tableList}>
@@ -521,14 +814,12 @@ export default class ProvideComponent extends PureComponent {
                         </Col>
                         <Col md={12} sm={24}>
                           <FormItem label="起止日期">
-                            {getFieldDecorator('range-picke')(
-                              // < onChange={onChange} />
-                              <RangePicker
-                                style={{ width: '100%' }}
-                                disabledDate={this.disabledDate}
-                                onChange={this.handleRangePickerChange}
-                              />
-                            )}
+                            <RangePicker
+                              style={{ width: '100%' }}
+                              value={rangePickerValue}
+                              disabledDate={this.disabledDate}
+                              onChange={this.handleRangePickerChange}
+                            />
                           </FormItem>
                         </Col>
                       </Row>
@@ -559,12 +850,12 @@ export default class ProvideComponent extends PureComponent {
                     >
                       发放
                     </Button> */}
-                    <Button type="primary" onClick={() => this.setImportmodal(true)}>
+                    {/* <Button type="primary" onClick={() => this.setImportmodal(true)}>
                       <Icon type="upload" />批量导入
                     </Button>
                     <Button icon="delete" onClick={() => this.handleRecycleModalVisible(true)}>
                       回收
-                    </Button>
+                    </Button> */}
                   </div>
                   <Table
                     pagination={paginationProps}
@@ -575,6 +866,12 @@ export default class ProvideComponent extends PureComponent {
                     onChange={this.handleStandardTableChange}
                   />
                 </div>
+              </Card>
+            </TabPane>
+            {/* 新增发放油费 */}
+            <TabPane tab="油费发放" key="add">
+              <Card bordered={false}>
+                <OilFeeGrant activeKey={this.activeKeyChange} />
               </Card>
             </TabPane>
           </Tabs>

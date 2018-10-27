@@ -34,7 +34,7 @@ const getValue = obj =>
 // rowSelection object indicates the need for row selection
 const rowSelection = {
   onChange: (selectedRowKeys, selectedRows) => {
-    console.log(`selectedRowKeys: ${selectedRowKeys}`, 'selectedRows: ', selectedRows);
+    // console.log(`selectedRowKeys: ${selectedRowKeys}`, 'selectedRows: ', selectedRows);
   },
   getCheckboxProps: record => ({
     // disabled: record.name === 'Disabled User', // Column configuration not to be checked
@@ -44,7 +44,7 @@ const rowSelection = {
 
 @connect(({ statement, loading }) => ({
   statement,
-  loading: loading.effects['statement/billlist','statement/billlistExport'],
+  loading: loading.effects[('statement/billlist', 'statement/billlistExport')],
 }))
 @Form.create()
 export default class Credit extends PureComponent {
@@ -60,12 +60,17 @@ export default class Credit extends PureComponent {
       currentId: -1,
       activeKey: panes[0].key,
       panes,
+      current:1,
       rangePickerValue: getTimeDistance('month'),
     };
   }
   // 初始化
   componentDidMount() {
     const { dispatch } = this.props;
+    const { rangePickerValue } = this.state; //startValue,endValue
+    const [startValue, endValue] = rangePickerValue;
+    const startTime = startValue.format('YYYY-MM-DD');
+    const endTime = endValue.format('YYYY-MM-DD');
     //结算 - 帐单列表或导出
     dispatch({
       type: 'statement/billlist',
@@ -74,6 +79,8 @@ export default class Credit extends PureComponent {
         pageSize: 10,
         isCount: 1,
         billType: 2,
+        billStartTime: startTime,
+        billEndTime: endTime,
       },
     });
     //公共接口 - 帐单列表页面获取帐套公司列表
@@ -84,33 +91,53 @@ export default class Credit extends PureComponent {
   }
   // 切换页数
   handleStandardTableChange = (pagination, filtersArg, sorter) => {
-    const { dispatch } = this.props;
-    const params = {
-      page: pagination.current,
-      count: pagination.pageSize,
-      isCount: 1,
-    };
+    const { dispatch, form } = this.props;
 
-    dispatch({
-      type: 'statement/billlist',
-      payload: {
-        page: 1,
-        pageSize: 10,
-        isCount: 1,
-        billType: 2,
-      },
-    });
-  };
-  handleFormReset = () => {
-    const { form, dispatch } = this.props;
-    form.resetFields();
-    this.setState({
-      formValues: {},
-    });
-    dispatch({
-      type: 'statement/fetch2',
-      payload: {},
-    });
+    const { rangePickerValue } = this.state;
+    const [startValue, endValue] = rangePickerValue;
+    if (Object.keys(rangePickerValue).length != 0) {
+      const startTime = startValue.format('YYYY-MM-DD');
+      const endTime = endValue.format('YYYY-MM-DD');
+      form.validateFields((err, fieldsValue) => {
+        if (err) return;
+        for (const prop in fieldsValue) {
+          if (
+            fieldsValue[prop] === '' ||
+            fieldsValue[prop] === '全部' ||
+            fieldsValue[prop] === undefined
+          ) {
+            delete fieldsValue[prop];
+          }
+        }
+        const params = {
+          billSn: fieldsValue.billSn,
+          ownCompanyId: fieldsValue.ownCompanyId,
+          settledStatus: fieldsValue.settledStatus,
+          billStartTime: startTime,
+          billEndTime: endTime,
+          page: pagination.current,
+          pageSize: pagination.pageSize,
+          isCount: 1,
+          billType: 2,
+        };
+
+        const values = {
+          ...params,
+          transactionType: fieldsValue.transactionType,
+          direction: fieldsValue.direction,
+        };
+        dispatch({
+          type: 'statement/billlist',
+          payload: values,
+        }).then( () => {
+          this.setState({
+            current:pagination.current
+          })
+        });
+      });
+    } else {
+      message.error('日期不能为空');
+    }
   };
 
   handleSelectRows = rows => {
@@ -139,8 +166,8 @@ export default class Credit extends PureComponent {
     const { rangePickerValue } = this.state;
     const [startValue, endValue] = rangePickerValue;
     if (Object.keys(rangePickerValue).length != 0) {
-      const startTime = startValue.format('YYYY-MM-DD HH:mm:ss');
-      const endTime = endValue.format('YYYY-MM-DD HH:mm:ss');
+      const startTime = startValue.format('YYYY-MM-DD');
+      const endTime = endValue.format('YYYY-MM-DD');
       form.validateFields((err, fieldsValue) => {
         if (err) return;
         for (const prop in fieldsValue) {
@@ -172,22 +199,28 @@ export default class Credit extends PureComponent {
         dispatch({
           type: 'statement/billlist',
           payload: values,
+        }).then( () => {
+          this.setState({
+            current: 1
+          })
         });
       });
     } else {
       message.error('日期不能为空');
     }
   };
+
   // 重置
   handleFormReset = () => {
     const { form, dispatch } = this.props;
     form.resetFields();
     this.setState({
       formValues: {},
-      // rangePickerValue: getTimeDistance('month'),
+      rangePickerValue: getTimeDistance('month'),
     });
-    // const startTime = startValue.format('YYYY-MM-DD');
-    // const endTime = endValue.format('YYYY-MM-DD');
+    const [startValue, endValue] = getTimeDistance('month');
+    const startTime = startValue.format('YYYY-MM-DD');
+    const endTime = endValue.format('YYYY-MM-DD');
 
     dispatch({
       type: 'statement/billlist',
@@ -196,9 +229,16 @@ export default class Credit extends PureComponent {
         pageSize: 10,
         isCount: 1,
         billType: 2,
+        billStartTime: startTime,
+        billEndTime: endTime,
       },
+    }).then( () => {
+      this.setState({
+        current: 1
+      })
     });
   };
+
   // 导出
   handlEexport = () => {
     const { dispatch, form } = this.props;
@@ -255,20 +295,13 @@ export default class Credit extends PureComponent {
       message.error('日期不能为空');
     }
   };
+
   // 预存账单详情
   handleModalVisible = (flag, billNumber) => {
     // this.setState({
     //   modalVisible: !!flag,
     //   currentId: id,
     // });
-    const { form, dispatch } = this.props;
-
-    dispatch({
-      type: 'statement/billlist',
-      payload: {
-        billNumber: billNumber,
-      },
-    });
     const panes = this.state.panes;
     let activeKey = `${this.newTabIndex++}`;
     // 保持仅有两个 tabs
@@ -298,6 +331,8 @@ export default class Credit extends PureComponent {
     }
     this.setState({ panes, activeKey });
   };
+
+  //tab切换回调
   onChange = activeKey => {
     const { dispatch } = this.props;
     this.setState({ activeKey });
@@ -312,11 +347,13 @@ export default class Credit extends PureComponent {
       },
     });
   };
+
   // remove 触发器
   onEdit = (targetKey, action) => {
     console.log(action);
     this[action](targetKey);
   };
+
   // 对账状态
   getBillStatus = status => {
     if (status == 1) {
@@ -327,11 +364,13 @@ export default class Credit extends PureComponent {
       return <Badge status="success" text="已完成" />;
     }
   };
+
   render() {
     const { statement, loading, form } = this.props;
     const { getFieldDecorator } = form;
     const { billList, ownCompanyList } = statement;
     const { count, list: tableData } = billList;
+    const { rangePickerValue } = this.state;
 
     //结算主体
     const ownOptions = [];
@@ -351,6 +390,7 @@ export default class Credit extends PureComponent {
       showQuickJumper: true,
       showSizeChanger: true,
       total: count,
+      current: this.state.current,
       showTotal: () => `共计 ${count} 条`,
     };
 
@@ -364,6 +404,8 @@ export default class Credit extends PureComponent {
       {
         title: '账单类型',
         dataIndex: 'billType',
+        render: text =>
+          text === 1 ? <Badge status="1" text="预存" /> : <Badge status="2" text="授信" />,
       },
       {
         title: '结算公司主体',
@@ -378,11 +420,11 @@ export default class Credit extends PureComponent {
         dataIndex: 'billSettlementAmount',
       },
       {
-        title: '已核销金额',
+        title: '已还款金额',
         dataIndex: 'billedAmount',
       },
       {
-        title: '待核销金额',
+        title: '待还款金额',
         dataIndex: 'waitBillAmount',
       },
       {
@@ -394,8 +436,16 @@ export default class Credit extends PureComponent {
         dataIndex: 'billDate',
       },
       {
+        title: '最后还款日期',
+        dataIndex: 'lastRepaymentDate',
+      },
+      {
+        title: '实际还清日',
+        dataIndex: 'realRepaymentDate',
+      },
+      {
         title: '账单核销状态',
-        dataIndex: 'billStatus',
+        dataIndex: 'repaymentStatus',
         render: text => this.getBillStatus(text),
 
         // render: text =>
@@ -449,15 +499,12 @@ export default class Credit extends PureComponent {
                     </Col>
                     <Col md={12} sm={24}>
                       <FormItem label="账单时间">
-                        {getFieldDecorator('time')(
-                          <RangePicker
-                            showTime={{ format: 'HH:mm' }}
-                            format="YYYY-MM-DD HH:mm"
-                            placeholder={['开始日期', '结束日期']}
-                            style={{ width: '100%' }}
-                            onChange={this.handleRangePickerChange}
-                          />
-                        )}
+                        <RangePicker
+                          style={{ width: '100%' }}
+                          value={rangePickerValue}
+                          disabledDate={this.disabledDate}
+                          onChange={this.handleRangePickerChange}
+                        />
                       </FormItem>
                     </Col>
                   </Row>
@@ -470,8 +517,8 @@ export default class Credit extends PureComponent {
                         重置
                       </Button>
                       <Button style={{ marginLeft: 8 }} type="primary" onClick={this.handlEexport}>
-                    <Icon type="export" />导出
-                  </Button>
+                        <Icon type="export" />导出
+                      </Button>
                     </span>
                   </div>
                 </Form>

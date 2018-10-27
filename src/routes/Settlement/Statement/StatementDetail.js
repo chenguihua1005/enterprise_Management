@@ -1,6 +1,6 @@
 import React, { PureComponent, Fragment } from 'react';
 import { connect } from 'dva';
-import { Row, Col, Icon, Card, Badge,Form, Button, Table, DatePicker, Input } from 'antd';
+import { Row, Col, Icon, Card, Badge, Form, Button, Table, DatePicker, Input, message } from 'antd';
 const { RangePicker } = DatePicker;
 import styles from '../Settlement.less';
 import moment from 'moment/moment';
@@ -14,16 +14,23 @@ const FormItem = Form.Item;
 }))
 @Form.create()
 export default class StatementDetail extends PureComponent {
-  state = {
-    modalVisible: false,
-    formValues: {},
-    rangePickerValue: getTimeDistance('month'),
-
-  };
+  constructor(props) {
+    super(props);
+    this.state = {
+      modalVisible: false,
+      formValues: {},
+      current:1,
+      rangePickerValue: getTimeDistance('month'),
+    };
+  }
+  
 
   componentDidMount() {
     const { dispatch, billNumber } = this.props;
-    this.billId = 0;
+    const { rangePickerValue } = this.state; //startValue,endValue
+    const [startValue, endValue] = rangePickerValue;
+    const startTime = startValue.format('YYYY-MM-DD');
+    const endTime = endValue.format('YYYY-MM-DD');
     dispatch({
       type: 'statement/billDetail',
       payload: {
@@ -31,54 +38,84 @@ export default class StatementDetail extends PureComponent {
       },
     }).then(() => {
       const { billDetail } = this.props.statement;
-      if (billDetail && JSON.stringify(billDetail) !== "{}") {
+      if (billDetail && JSON.stringify(billDetail) !== '{}') {
         // 列表
-    dispatch({
-      type: 'statement/billOrderList',
-      payload: {
-        isCount: 1,
-        billId: billDetail.billId,
-      },
-    });
+        dispatch({
+          type: 'statement/billOrderList',
+          payload: {
+            isCount: 1,
+            billId: billDetail.billId,
+            startTime,
+            endTime,
+          },
+        });
       }
     });
-    
   }
 
   // 重置搜索条件
   handleFormReset = () => {
-    const { form, dispatch } = this.props;
+    const { form, dispatch, billNumber } = this.props;
+    const { rangePickerValue } = this.state; //startValue,endValue
     form.resetFields();
     this.setState({
       formValues: {},
+      rangePickerValue: getTimeDistance('month'),
     });
+    const [startValue, endValue] = getTimeDistance('month');
+    const startTime = startValue.format('YYYY-MM-DD');
+    const endTime = endValue.format('YYYY-MM-DD');
     dispatch({
-      type: 'statement/fetch1',
-      payload: {},
+      type: 'statement/billDetail',
+      payload: {
+        billNumber: billNumber,
+      },
+    }).then(() => {
+      const { billDetail } = this.props.statement;
+      if (billDetail && JSON.stringify(billDetail) !== '{}') {
+        // 列表
+        dispatch({
+          type: 'statement/billOrderList',
+          payload: {
+            isCount: 1,
+            billId: billDetail.billId,
+            startTime,
+            endTime,
+          },
+        }).then( () => {
+          this.setState({
+            current:1
+          })
+        });
+      }
     });
   };
- //日期框设置值
- handleRangePickerChange = rangePickerValue => {
-  this.setState({
-    rangePickerValue,
-  });
-};
-//禁用当前日期之后的时间
-disabledDate = current => {
-  // console.log(moment().subtract(3,"months"));
-  // return current && current < moment().subtract(3,"months");
-  return current && current > moment().endOf('day');
-};
+
+  //日期框设置值
+  handleRangePickerChange = rangePickerValue => {
+    this.setState({
+      rangePickerValue,
+    });
+  };
+
+  //禁用当前日期之后的时间
+  disabledDate = current => {
+    // console.log(moment().subtract(3,"months"));
+    // return current && current < moment().subtract(3,"months");
+    return current && current > moment().endOf('day');
+  };
+
   // 搜索
   handleSearch = e => {
     e.preventDefault();
-    const { dispatch, form, billDetail } = this.props;
+    const { dispatch, form } = this.props;
+    const { billDetail } = this.props.statement;
     // 表单校验
-    const {rangePickerValue}=this.state;
-    const [startValue,endValue]=rangePickerValue;
-    if(Object.keys(rangePickerValue).length!=0){
-      const startTime = startValue.format('YYYY-MM-DD HH:mm:ss');
-      const endTime = endValue.format('YYYY-MM-DD HH:mm:ss');
+    const { rangePickerValue } = this.state;
+    const [startValue, endValue] = rangePickerValue;
+    if (Object.keys(rangePickerValue).length != 0) {
+      const startTime = startValue.format('YYYY-MM-DD');
+      const endTime = endValue.format('YYYY-MM-DD');
       form.validateFields((err, fieldsValue) => {
         if (err) return;
         for (const prop in fieldsValue) {
@@ -90,17 +127,17 @@ disabledDate = current => {
             delete fieldsValue[prop];
           }
         }
-      const params={
-        orderSn: fieldsValue.orderSn,
-        billStartTime: startTime,
-        billEndTime: endTime,
-        minAmount: fieldsValue.minAmount,
-        maxAmount: fieldsValue.maxAmount,
-        page: 1,
-        pageSize: 10,
-        isCount: 1,
-        billId: billDetail.billId,
-      };
+        const params = {
+          orderSn: fieldsValue.orderSn,
+          startTime,
+          endTime,
+          minAmount: fieldsValue.minAmount,
+          maxAmount: fieldsValue.maxAmount,
+          billId: billDetail.billId,
+          page: 1,
+          pageSize: 10,
+          isCount: 1,
+        };
 
         const values = {
           ...params,
@@ -110,16 +147,73 @@ disabledDate = current => {
         dispatch({
           type: 'statement/billOrderList',
           payload: values,
+        }).then( () => {
+          this.setState({
+            current: 1
+          })
         });
       });
-    }else{
-      message.error("日期不能为空");
+    } else {
+      message.error('日期不能为空');
     }
   };
+
+  handleStandardTableChange = (pagination, filtersArg, sorter) => {
+    const { dispatch, form } = this.props;
+    const { billDetail } = this.props.statement;
+    // 表单校验
+    const { rangePickerValue } = this.state;
+    const [startValue, endValue] = rangePickerValue;
+    if (Object.keys(rangePickerValue).length != 0) {
+      const startTime = startValue.format('YYYY-MM-DD');
+      const endTime = endValue.format('YYYY-MM-DD');
+      form.validateFields((err, fieldsValue) => {
+        if (err) return;
+        for (const prop in fieldsValue) {
+          if (
+            fieldsValue[prop] === '' ||
+            fieldsValue[prop] === '全部' ||
+            fieldsValue[prop] === undefined
+          ) {
+            delete fieldsValue[prop];
+          }
+        }
+        const params = {
+          orderSn: fieldsValue.orderSn,
+          startTime,
+          endTime,
+          minAmount: fieldsValue.minAmount,
+          maxAmount: fieldsValue.maxAmount,
+          billId: billDetail.billId,
+          page: pagination.current,
+          pageSize: pagination.pageSize,
+          isCount: 1,
+        };
+
+        const values = {
+          ...params,
+          transactionType: fieldsValue.transactionType,
+          direction: fieldsValue.direction,
+        };
+        dispatch({
+          type: 'statement/billOrderList',
+          payload: values,
+        }).then( () => {
+          this.setState({
+            current:pagination.current
+          })
+        });
+      });
+    } else {
+      message.error('日期不能为空');
+    }
+  }
+
   // 搜索区表单
   renderAdvancedForm() {
-    const { billDetail  } = this.props.statement;
-    const { getFieldDecorator  } = this.props.form;
+    const { billDetail } = this.props.statement;
+    const { getFieldDecorator } = this.props.form;
+    const { rangePickerValue } = this.state;
     return (
       <div>
         <Card>
@@ -149,74 +243,69 @@ disabledDate = current => {
         </Card>
 
         <Card>
-        <Form onSubmit={this.handleSearch} layout="inline">
-          <Row gutter={{ md: 8, lg: 24, xl: 48 }}>
-            <Col span={12}>
-              <FormItem label="订单号">
-                {getFieldDecorator('orderSn', {
-                  basicinfo: [{ required: true, message: 'Please input some description...' }],
-                })(<Input placeholder="请输入" />)}
-              </FormItem>
-            </Col>
-            <Col span={12}>
-              <FormItem label="创建时间">
-                {getFieldDecorator('time', {
-                  basicinfo: [{ required: true, message: 'Please input some description...' }],
-                })(
+          <Form onSubmit={this.handleSearch} layout="inline">
+            <Row gutter={{ md: 8, lg: 24, xl: 48 }}>
+              <Col span={12}>
+                <FormItem label="订单号">
+                  {getFieldDecorator('orderSn', {
+                    basicinfo: [{ required: true, message: '请输入订单号' }],
+                  })(<Input placeholder="请输入" />)}
+                </FormItem>
+              </Col>
+              <Col span={12}>
+                <FormItem label="创建时间">
                   <RangePicker
                     showTime
                     allowClear
-                    placeholder={['Start Time', 'End Time']}
+                    value={rangePickerValue}
                     disabledDate={this.disabledDate}
                     onChange={this.handleRangePickerChange}
-                    style={{ width: '100%' }} 
+                    style={{ width: '100%' }}
                   />
-                )}
-              </FormItem>
-            </Col>
-          </Row>
-          <Row gutter={{ md: 8, lg: 24, xl: 48 }}>
-            <Col span={8}>
-              <FormItem label="实收金额">
-                {getFieldDecorator('minAmount', {
-                  basicinfo: [{ required: true, message: 'Please input some description...' }],
-                })(<Input placeholder="请输入最小值" />)}
-              </FormItem>
-            </Col>
-            <Col span={2}>~</Col>
-            <Col span={8}>
-              <FormItem label="">
-                {getFieldDecorator('maxAmount', {
-                  basicinfo: [{ required: true, message: 'Please input some description...' }],
-                })(<Input placeholder="请输入最大值" />)}
-              </FormItem>
-            </Col>
-            <span style={{ float: 'right' }}>
+                </FormItem>
+              </Col>
+            </Row>
+            <Row gutter={{ md: 8, lg: 24, xl: 48 }}>
+              <Col span={8}>
+                <FormItem label="实收金额">
+                  {getFieldDecorator('minAmount', {
+                    basicinfo: [{ required: true, message: '最小值' }],
+                  })(<Input placeholder="请输入最小值" />)}
+                </FormItem>
+              </Col>
+              <Col span={2}>~</Col>
+              <Col span={8}>
+                <FormItem label="">
+                  {getFieldDecorator('maxAmount', {
+                    basicinfo: [{ required: true, message: '最大值' }],
+                  })(<Input placeholder="请输入最大值" />)}
+                </FormItem>
+              </Col>
+              <span style={{ float: 'right' }}>
                 <Button type="primary" htmlType="submit">
-                <Icon type="search" />查询
+                  <Icon type="search" />查询
                 </Button>
                 <Button type="primary" style={{ marginLeft: 8 }} onClick={this.handleFormReset}>
                   重置
                 </Button>
               </span>
-          </Row>
-        </Form>
-          </Card>
-      
+            </Row>
+          </Form>
+        </Card>
       </div>
     );
   }
-  getBillStatus = (status) => {
-    if(status == 1) {
-      return <Badge status="1" text="未结算"/>
-    }else if(status == 2){
-      return <Badge status="2" text="结算中"/>
-    } else if(status === 3){
-      return <Badge status="3" text="已完成"/>
-    } else{
-      return <Badge status="0" text="已取消"/>
+  getBillStatus = status => {
+    if (status == 1) {
+      return <Badge status="1" text="未结算" />;
+    } else if (status == 2) {
+      return <Badge status="2" text="结算中" />;
+    } else if (status === 3) {
+      return <Badge status="3" text="已完成" />;
+    } else {
+      return <Badge status="0" text="已取消" />;
     }
-}
+  };
   render() {
     const { statement, loading } = this.props;
     const { billDetail, billOrderList } = statement;
@@ -227,9 +316,10 @@ disabledDate = current => {
       showQuickJumper: true,
       showSizeChanger: true,
       total: count,
+      current: this.state.current,
       showTotal: () => `共计 ${count} 条`,
     };
-    
+
     const column = [
       {
         title: '订单号',
@@ -276,11 +366,9 @@ disabledDate = current => {
       {
         title: '对账状态',
         dataIndex: 'billStatus',
-         render: status => this.getBillStatus(status)
+        render: status => this.getBillStatus(status),
       },
     ];
-
-      
 
     return (
       <div>
@@ -299,6 +387,7 @@ disabledDate = current => {
               dataSource={tableData}
               pagination={paginationProps}
               scroll={{ x: 1400 }}
+              onChange={this.handleStandardTableChange}
             />
           </Row>
         </Card>

@@ -16,53 +16,85 @@ export default class OilFeeRecycle extends PureComponent {
     };
   }
 
+  IsNum = s => {
+    let re = /^(\-|\+)?\d+(\.\d+)?$/; //判断字符串是否为数字
+    if (!re.test(s)) {
+      return false;
+    } else return true;
+  };
+
   // 确定后提交操作与关闭弹窗
   okHandle = (callback, grantType, companyBranchOrDriverId, amount) => {
-    callback && callback();
-    const { dispatch } = this.props;
-    //回收油费
-    dispatch({
-      type: 'oilfee/fetchProvideRecover',
-      payload: {
-        member_id: 26,
-        grantType: grantType == 'driver' ? 2 : 1,
-        driverId: companyBranchOrDriverId,
-        branchId: companyBranchOrDriverId,
-        recoveryAmount: amount,
-      },
-    }).then(() => {
-      const { provideRecover } = this.props.oilfee;
-      switch (provideRecover.err) {
-        //err=0成功
-        case 0:
-          message.success(provideRecover.msg);
-          break;
-        default:
-          message.warning(provideRecover.msg);
+    const { dispatch, form } = this.props;
+    form.validateFields((err, fieldsValue) => {
+      if (!err) {
+        if (!this.IsNum(amount)) {
+          message.warning('金额必须为数字');
+          return;
+        } else if (parseFloat(amount) <= 0) {
+          message.warning('金额需大于0');
+          return;
+        } else if (parseFloat(amount) > parseFloat(this.props.oilfee.provideRecycle.money)) {
+          message.warning('回收金额必须小于或等于可回收金额！');
+          return;
+        }
+        callback && callback();
+        //回收油费
+        dispatch({
+          type: 'oilfee/fetchProvideRecover',
+          payload: {
+            member_id: 26,
+            grantType: grantType == 'driver' ? 2 : 1,
+            driverId: companyBranchOrDriverId,
+            branchId: companyBranchOrDriverId,
+            recoveryAmount: amount,
+          },
+        }).then(() => {
+          const { provideRecover } = this.props.oilfee;
+          switch (provideRecover.err) {
+            //err=0成功
+            case 0:
+              message.success(provideRecover.msg);
+              break;
+            default:
+              message.warning(provideRecover.msg);
+          }
+          //清掉"回收金额"数据
+          form.resetFields('reCount');
+          //发放完油费后，要去刷新"分公司账户"和"司机账户"页面数据
+          //帐户-获取分公司油卡账户详情
+          dispatch({
+            type: 'oilfee/fetch2',
+            payload: {
+              member_id: 26,
+              page: 1,
+              pageSize: 10,
+              isCount: 1,
+            },
+          });
+          //帐户-获取司机油卡账户详情列表
+          dispatch({
+            type: 'oilfee/fetch3',
+            payload: {
+              member_id: 26,
+              page: 1,
+              pageSize: 10,
+              isCount: 1,
+            },
+          });
+        });
       }
-      //发放完油费后，要去刷新"分公司账户"和"司机账户"页面数据
-      //帐户-获取分公司油卡账户详情
-      dispatch({
-        type: 'oilfee/fetch2',
-        payload: {
-          member_id: 26,
-          page: 1,
-          pageSize: 10,
-          isCount: 1,
-        },
-      });
-      //帐户-获取司机油卡账户详情列表
-      dispatch({
-        type: 'oilfee/fetch3',
-        payload: {
-          member_id: 26,
-          page: 1,
-          pageSize: 10,
-          isCount: 1,
-        },
-      });
     });
   };
+
+    // 取消后提交操作与关闭弹窗
+    cancelHandle = callback => {
+      const { form } = this.props;
+      //清掉"回收金额"数据
+      form.resetFields('reCount');
+      callback && callback();
+    };
+
   // 选择车牌所属地后的回调
   onChange = checked => {
     console.log(checked);
@@ -95,7 +127,7 @@ export default class OilFeeRecycle extends PureComponent {
           )
         }
         width={650}
-        onCancel={handleModalVisible}
+        onCancel={() => this.cancelHandle(handleModalVisible)}
       >
         <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 16 }} label="回收对象">
           {getFieldDecorator('reObject')(

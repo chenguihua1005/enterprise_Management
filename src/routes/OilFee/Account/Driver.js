@@ -1,11 +1,8 @@
 import React, { PureComponent, Fragment } from 'react';
 import { connect } from 'dva';
 import { Row, Col, Card, Form, Input, Tabs, Button, Table, Divider, Icon, message } from 'antd';
-
 import PageHeaderLayout from '../../../layouts/PageHeaderLayout';
-
 import styles from '../OilFee.less';
-
 import AccountDetailDetailComponent from './DriverDetail';
 import OilFeeDriverSetting from '../components/AccountSetting';
 import OilFeeRecycle from '../components/OilFeeRecycle';
@@ -27,6 +24,7 @@ export default class AccountBranchComponent extends PureComponent {
     this.state = {
       activeKey: panes[0].key, // 默认选中 tab
       panes,
+      current: 1,
       formValues: {}, // 表单信息
       settingModalVisible: false,
       dirverInfo: {}, // 司机信息
@@ -88,21 +86,6 @@ export default class AccountBranchComponent extends PureComponent {
     });
   }
 
-  handleStandardTableChange = (pagination, filtersArg, sorter) => {
-    const { dispatch } = this.props;
-    const params = {
-      member_id: 26,
-      page: pagination.current,
-      pageSize: pagination.pageSize,
-      isCount: 1,
-    };
-    //帐户-获取司机油卡账户详情列表
-    dispatch({
-      type: 'oilfee/fetch3',
-      payload: params,
-    });
-  };
-
   // 搜索
   handleSearch = e => {
     e.preventDefault();
@@ -140,6 +123,53 @@ export default class AccountBranchComponent extends PureComponent {
       dispatch({
         type: 'oilfee/fetch3',
         payload: values,
+      }).then(() => {
+        this.setState({
+          current: 1
+        })
+      });
+    });
+  };
+
+  //列表变化翻页的回调
+  handleStandardTableChange = (pagination, filtersArg, sorter) => {
+    const { dispatch, form } = this.props;
+    const params = {
+      member_id: 26,
+      page: pagination.current,
+      pageSize: pagination.pageSize,
+      isCount: 1,
+    };
+    // 表单校验
+    form.validateFields((err, fieldsValue) => {
+      if (err) return;
+      for (const prop in fieldsValue) {
+        if (
+          fieldsValue[prop] === '' ||
+          fieldsValue[prop] === '全部' ||
+          fieldsValue[prop] === undefined
+        ) {
+          delete fieldsValue[prop];
+        }
+      }
+      const values = {
+        ...params,
+        mobilePhone: fieldsValue.mobilePhone,
+        branchName: fieldsValue.branchName,
+        employeeName: fieldsValue.employeeName,
+      };
+
+      this.setState({
+        formValues: values,
+      });
+      //帐户-获取司机油卡账户详情列表
+      dispatch({
+        type: 'oilfee/fetch3',
+        payload: values,
+      }).then(() => {
+        this.setState({
+          current: pagination.current
+        })
       });
     });
   };
@@ -225,6 +255,7 @@ export default class AccountBranchComponent extends PureComponent {
     this.setState({ panes, activeKey });
     console.log(record);
   }
+
   // 关闭 tabs
   remove = targetKey => {
     let activeKey = this.state.activeKey;
@@ -240,9 +271,11 @@ export default class AccountBranchComponent extends PureComponent {
     }
     this.setState({ panes, activeKey });
   };
+
   onChange = activeKey => {
     this.setState({ activeKey });
   };
+
   // remove 触发器
   onEdit = (targetKey, action) => {
     console.log(action);
@@ -258,6 +291,7 @@ export default class AccountBranchComponent extends PureComponent {
       showQuickJumper: true,
       showSizeChanger: true,
       total: count,
+      current: this.state.current,
       showTotal: () => `共计 ${count} 条`,
     };
 
@@ -287,7 +321,11 @@ export default class AccountBranchComponent extends PureComponent {
         key: 'action',
         render: (text, record) => (
           <span>
-            <Button type="primary" onClick={() => this.handleGrantModalVisible(true, record)}>
+            <Button
+              type="primary"
+              disabled={record.status == 0 || record.status == 1001}
+              onClick={() => this.handleGrantModalVisible(true, record)}
+            >
               发放油费
             </Button>
             <Divider type="vertical" />

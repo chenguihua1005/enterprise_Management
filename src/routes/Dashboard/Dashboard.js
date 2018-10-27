@@ -1,26 +1,14 @@
 import React, { Component, Fragment } from 'react';
 import { connect } from 'dva';
-import {
-  Row,
-  Col,
-  Icon,
-  Card,
-  Tabs,
-  DatePicker,
-  Menu,
-  Dropdown,
-} from 'antd';
+import { Row, Col, Icon, Card, Tabs, DatePicker, Menu, Dropdown } from 'antd';
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
 import numeral from 'numeral';
 import { ChartCard, yuan, Bar, Linear } from 'components/Charts';
 import { getTimeDistance } from '../../utils/utils';
-
 import styles from './Dashboard.less';
-import props from './../../layouts/BlankLayout';
-
+import sha1 from 'crypto-js/sha1';
 const { TabPane } = Tabs;
 const { RangePicker } = DatePicker;
-
 const Yuan = ({ children }) => (
   <span
     dangerouslySetInnerHTML={{ __html: yuan(children) }} /* eslint-disable-line react/no-danger */
@@ -32,7 +20,7 @@ const Yuan = ({ children }) => (
   loading: loading.effects['dashboard/fetch'],
 }))
 export default class Dashboard extends Component {
-  constructor(props){
+  constructor(props) {
     super(props);
     this.type = 1;
     this.accountType = false;
@@ -40,18 +28,16 @@ export default class Dashboard extends Component {
     this.state = {
       salesType: 'all',
       currentTabKey: '',
-      rangePickerValue: getTimeDistance('year'),
+      rangePickerValue: getTimeDistance('week'),
     };
   }
-  
 
   componentDidMount() {
     const { dispatch } = this.props;
     // 基础信息
     dispatch({
       type: 'dashboard/statisticsInfo',
-      payload: {
-      },
+      payload: {},
     });
     // tab数据
     dispatch({
@@ -69,55 +55,54 @@ export default class Dashboard extends Component {
     });
   }
 
-  componentWillUnmount() {
-    const { dispatch } = this.props;
-    // dispatch({
-    //   type: 'dashboard/clear',
-    // });
-  }
 
-  handleChangeSalesType = e => {
-    this.setState({
-      salesType: e.target.value,
-    });
-  };
+  // handleChangeSalesType = e => {
+  //   this.setState({
+  //     salesType: e.target.value,
+  //   });
+  // };
 
-  handleTabChange = key => {
-    this.setState({
-      currentTabKey: key,
-    });
-  };
+  // handleTabChange = key => {
+  //   this.setState({
+  //     currentTabKey: key,
+  //   });
+  // };
 
-  handleRangePickerChange = rangePickerValue => {
-    this.setState({
-      rangePickerValue,
-    });
+  // handleRangePickerChange = rangePickerValue => {
+  //   this.setState({
+  //     rangePickerValue,
+  //   });
+  //   const { dispatch } = this.props;
+  //   dispatch({
+  //     type: 'dashboard/fetchSalesData',
+  //   });
+  // };
 
-    const { dispatch } = this.props;
-    dispatch({
-      type: 'dashboard/fetchSalesData',
-    });
-  };
-
+  //本周:1, 本月:2
   selectDate = type => {
+    if(type === 1) {
+      this.setState({
+        rangePickerValue: getTimeDistance('week'),
+      });
+    }else if(type === 2) {
+      this.setState({
+        rangePickerValue: getTimeDistance('month'),
+      });
+    }
     const { dispatch } = this.props;
-    this.type = type;
-   
     dispatch({
       type: 'dashboard/addOilStatistics',
       payload: {
-        type: this.type,
+        type,
       },
     });
-
     dispatch({
       type: 'dashboard/branchAddOilStatistics',
       payload: {
-        type: this.type,
+        type,
       },
     });
   };
-  
 
   isActive(type) {
     const { rangePickerValue } = this.state;
@@ -135,23 +120,23 @@ export default class Dashboard extends Component {
 
   render() {
     const { dashboard, loading, form } = this.props;
-    const { statisticsInfo, addOilStatistics, branchAddOilStatistics } = dashboard
-    const { rangePickerValue } = this.state;
+    const { statisticsInfo, addOilStatistics, branchAddOilStatistics } = dashboard;
+    // const { rangePickerValue } = this.state;
     // const { salesData } = dashboard;
     let salesData = [];
     let salesData2 = [];
     if (branchAddOilStatistics === {}) {
       branchAddOilStatistics: [];
     }
-    addOilStatistics.map(item=>{
-      salesData.push({x: item.date,y: item.liter})
-    })
-    addOilStatistics.map(item=>{
-      salesData2.push({x: item.date,y: item.money})
-    
-    })
-    
-
+    if(Object.prototype.toString.call(addOilStatistics) === '[object Array]'){
+      addOilStatistics.map(item => {
+        salesData.push({ x: item.date, y: item.liter });
+      });
+      addOilStatistics.map(item => {
+        salesData2.push({ x: item.date, y: item.money });
+      });
+    }
+  
     const menu = (
       <Menu>
         <Menu.Item>操作一</Menu.Item>
@@ -191,7 +176,7 @@ export default class Dashboard extends Component {
         <Row gutter={0} style={{ marginBottom: 15 }}>
           <Col span={24}>
             <Card
-              title={`${statisticsInfo.parentCompany}/${statisticsInfo.belongCompany}`}
+              title={`${statisticsInfo.parentCompany === undefined ? '-' : statisticsInfo.parentCompany}/${statisticsInfo.belongCompany === undefined ? '-' : statisticsInfo.belongCompany}`}
               bordered={false}
               bodyStyle={{ padding: 10 }}
             >
@@ -202,25 +187,19 @@ export default class Dashboard extends Component {
                     title="账户余额"
                     loading={loading}
                     contentHeight={46}
-                  >
-                  </ChartCard>
+                  />
                 </Col>
-                {
-                  statisticsInfo.accountType == 10 ?
-                  (
-                    <Col span={8} >
-                      <ChartCard
-                        bordered={false}
-                        title="预存账户余额（元）"
-                        loading={loading}
-                        total={() => <h4>{statisticsInfo.accountAmount}</h4>}
-                        contentHeight={46}
-                      >
-                      </ChartCard>
-                    </Col>
-                  )
-                  :
-                  (
+                {statisticsInfo.accountType == 10 ? (
+                  <Col span={8}>
+                    <ChartCard
+                      bordered={false}
+                      title="预存账户余额（元）"
+                      loading={loading}
+                      total={() => <h4>{statisticsInfo.accountAmount}</h4>}
+                      contentHeight={46}
+                    />
+                  </Col>
+                ) : (
                   <Col span={8}>
                     <ChartCard
                       bordered={false}
@@ -228,23 +207,18 @@ export default class Dashboard extends Component {
                       loading={loading}
                       total={() => <h4>{statisticsInfo.accountAmount}</h4>}
                       contentHeight={46}
-                    >
-                    </ChartCard>
+                    />
                   </Col>
-                  )
-                }
-               
-                
+                )}
               </Row>
               <Row gutter={0}>
-              <Col span={4}>
+                <Col span={4}>
                   <ChartCard
                     bordered={false}
                     title="今日加油"
                     loading={loading}
                     contentHeight={46}
-                  >
-                  </ChartCard>
+                  />
                 </Col>
                 <Col span={8}>
                   <ChartCard
@@ -253,8 +227,7 @@ export default class Dashboard extends Component {
                     loading={loading}
                     total={() => <h4>{statisticsInfo.oilTotalAmount}</h4>}
                     contentHeight={46}
-                  >
-                  </ChartCard>
+                  />
                 </Col>
                 <Col span={8}>
                   <ChartCard
@@ -263,8 +236,7 @@ export default class Dashboard extends Component {
                     loading={loading}
                     total={() => <h4>{statisticsInfo.oilTotalLitre}</h4>}
                     contentHeight={46}
-                  >
-                  </ChartCard>
+                  />
                 </Col>
               </Row>
             </Card>
@@ -282,11 +254,9 @@ export default class Dashboard extends Component {
                       <Linear height={295} width={300} title="加油升数趋势" data={salesData} />
                     </div>
                   </Col>
-                  {
-                    branchAddOilStatistics && JSON.stringify(branchAddOilStatistics) =="{}" ? 
-                    null:
-                    (
-                      <Col xl={8} lg={12} md={12} sm={24} xs={24}>
+                  {branchAddOilStatistics &&
+                  JSON.stringify(branchAddOilStatistics) == '{}' ? null : (
+                    <Col xl={8} lg={12} md={12} sm={24} xs={24}>
                       <div className={styles.salesRank}>
                         <h4 className={styles.rankingTitle}>加油升数排名</h4>
                         <ul className={styles.rankingList}>
@@ -300,9 +270,7 @@ export default class Dashboard extends Component {
                         </ul>
                       </div>
                     </Col>
-                    )
-                  }
-                  
+                  )}
                 </Row>
               </TabPane>
               <TabPane tab="加油金额" key="views">
@@ -313,10 +281,8 @@ export default class Dashboard extends Component {
                       <Linear height={292} title="加油金额趋势" data={salesData2} />
                     </div>
                   </Col>
-                  {
-                    branchAddOilStatistics && JSON.stringify(branchAddOilStatistics) =="{}" ? 
-                    null:
-                    (
+                  {branchAddOilStatistics &&
+                  JSON.stringify(branchAddOilStatistics) == '{}' ? null : (
                     <Col xl={8} lg={12} md={12} sm={24} xs={24}>
                       <div className={styles.salesRank}>
                         <h4 className={styles.rankingTitle}>加油金额排名</h4>
@@ -331,9 +297,7 @@ export default class Dashboard extends Component {
                         </ul>
                       </div>
                     </Col>
-                    )
-                  }
-                  
+                  )}
                 </Row>
               </TabPane>
             </Tabs>

@@ -24,6 +24,7 @@ export default {
 
   state: {
     oilAccountInfo: {},
+    oilAccountInfoAmount: '',
     oilAccountInfoList: {},
     oilAccountInfoListExport: {},
     oilBranchInfoList: {},
@@ -37,7 +38,9 @@ export default {
     provideTemplet: {},
     branchCompany: [],
     provideCompany: [],
+    provideCompanyCount: 0,
     provideDriver: [],
+    provideDriverCount: 0,
     provideDistribute: {},
     provideRecover: {},
     provideRecycle: { money: '正在加载' },
@@ -51,6 +54,7 @@ export default {
         type: 'save',
         payload: {
           oilAccountInfo: response.res,
+          oilAccountInfoAmount: response.res.accountAmount || '...',
         },
       });
     },
@@ -172,16 +176,18 @@ export default {
         type: 'save',
         payload: {
           provideCompany: response.res.list,
+          provideCompanyCount: response.res.count,
         },
       });
     },
-    //当前可发放油费的司机,isAll=1获取全部
+    //当前可发放油费的司机,isAll=1获取全部，distribute=1获取有效司机
     *fetchProvideDriver({ payload }, { call, put }) {
       const response = yield call(queryoilfeeDriver, payload);
       yield put({
         type: 'save',
         payload: {
           provideDriver: response.res.list,
+          provideDriverCount: response.res.count,
         },
       });
     },
@@ -212,6 +218,15 @@ export default {
         type: 'save',
         payload: {
           provideRecycle: response.res,
+        },
+      });
+    },
+    //获取可回收油费后，重置为“正在加载”
+    *fetchProvideRecycleReset({ payload }, { call, put }) {
+      yield put({
+        type: 'save',
+        payload: {
+          provideRecycle: { money: '正在加载' },
         },
       });
     },

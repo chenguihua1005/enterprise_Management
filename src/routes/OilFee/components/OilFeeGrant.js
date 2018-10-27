@@ -5,15 +5,12 @@ import {
   Input,
   Select,
   Button,
-  InputNumber,
   Modal,
   message,
   Switch,
-  Icon,
   Row,
   Col,
-  Checkbox,
-  Card,
+  notification,
   Table,
   Popconfirm,
 } from 'antd';
@@ -23,31 +20,28 @@ const Search = Input.Search;
 
 @connect(({ oilfee, loading }) => ({
   oilfee,
-  loading: loading.effects['oilfee/fetchProvideDriver'],
+  loading: loading.effects['oilfee/fetchProvideDistribute'],
 }))
 @Form.create()
 export default class OilFeeGrantComponent extends PureComponent {
   constructor(props) {
     super(props);
-
     this.allMotorcade = []; // 所有的车队
     this.allDrivers = []; // 所有的司机
-    this.checkedMotocardId = []; // 已选车队
-    this.checkedDriversId = []; // 已选司机
-    this.allCheckboxes = []; //已选列表
+    this.allCheckboxes = []; //table数据源
+    this.selectedRows = []; //新的已选择的的item
     this.state = {
+      current: 1,
+      pageSize: 10,
       isAverage: false, // 是否平均发放
       averageCount: '',
-      grantForm: {},
       isDriver: '2', // 司机 or 分公司
       checkboxModalVisible: false, // 选择弹窗的显示隐藏
-      checkedAll: false, // 车队、分公司选中
-      indeterminate: false, // 全不选 - 全选中间状态
       willRenderTableData: [], // 选中要发放的车队
-      allCheckboxesItems: [],
-      allCheckboxes: [],
-      checkedMotocardId: [], // 已选车队
-      checkedDriversId: [], // 已选司机
+      allCheckboxes: [], //table数据源
+      selectedRowKeys: [], // Check here to configure the default column
+      searchText: '',
+      selectedRowsKeys2: [],
     };
   }
 
@@ -60,7 +54,8 @@ export default class OilFeeGrantComponent extends PureComponent {
         member_id: 26,
         page: 1,
         pageSize: 10,
-        isAll: 1,
+        // isAll: 1,
+        isCount: 1,
       },
     });
     //获取司机
@@ -70,71 +65,140 @@ export default class OilFeeGrantComponent extends PureComponent {
         member_id: 26,
         page: 1,
         pageSize: 10,
-        isAll: 1,
+        // isAll: 1,
+        isCount: 1,
+        distribute: 1,
       },
     });
   }
 
+  IsNum = s => {
+    let re = /^(\-|\+)?\d+(\.\d+)?$/; //判断字符串是否为数字
+    if (!re.test(s)) {
+      return false;
+    } else return true;
+  };
+
   // 提交表单的操作
   handleSubmit = e => {
     e.preventDefault();
-    const data = this.state.willRenderTableData;
-    let objList = [];
-    if (this.state.isAverage) {
-      for (let item of data) {
-        console.log(item);
-        objList.push({
-          no: item.id,
-          obj: item.id,
-          amount: this.state.averageCount,
-        });
-      }
-    } else {
-      for (let item of data) {
-        console.log(item);
-        objList.push({
-          no: item.id,
-          obj: item.id,
-          amount: item.average,
-        });
-      }
-    }
-
-    console.log('willRenderTableData =' + objList);
-    for (let item of objList) {
-      console.log(item);
-    }
-    //等额发放
     const { dispatch, form } = this.props;
-    const grantType = form.getFieldValue('grantType');
-    //发放油费
-    dispatch({
-      type: 'oilfee/fetchProvideDistribute',
-      payload: {
-        member_id: 26,
-        grantType,
-        data: objList,
-      },
-    }).then(() => {
-      const { provideDistribute } = this.props.oilfee;
-      const { activeKey } = this.props;
-      switch (provideDistribute.err) {
-        //err=0成功
-        case 0:
-          message.success(provideDistribute.msg);
-          activeKey('list');
-          //清空发放页面的旧数据
-          this.setState({
-            willRenderTableData: [],
-          });
-          //总账户详情
-          dispatch({
-            type: 'oilfee/fetch1',
-            payload: { member_id: 26 },
-          });
-          break;
-        default:
-          message.warning(provideDistribute.msg);
+    form.validateFields((err, fieldsValue) => {
+      if (!err) {
+        const data = this.state.willRenderTableData;
+        let objList = [];
+        if (this.state.isAverage) {
+          //等额发放
+          if (!this.IsNum(this.state.averageCount)) {
+            message.warning('金额必须为数字');
+            return;
+          } else if (parseFloat(this.state.averageCount) <= 0) {
+            message.warning('金额需大于0');
+            return;
+          } 
+          else if (parseFloat(this.state.averageCount) > parseFloat(this.props.oilfee.oilAccountInfoAmount)) {
+            message.warning('发放金额必须小于或等于可发放金额！');
+            return;
+          }
+          for (let item of data) {
+            objList.push({
+              no: item.id,
+              obj: item.id,
+              amount: this.state.averageCount,
+            });
+          }
+        } else {
+          for (let item of data) {
+            if (!this.IsNum(item.average)) {
+              message.warning('金额必须为数字');
+              return;
+            } else if (parseFloat(item.average) <= 0) {
+              message.warning('金额需大于0');
+              return;
+            } 
+            else if (parseFloat(item.average) > parseFloat(this.props.oilfee.oilAccountInfoAmount)) {
+              message.warning('发放金额必须小于或等于可发放金额！');
+              return;
+            }            
+            objList.push({
+              no: item.id,
+              obj: item.id,
+              amount: item.average,
+            });
+          }
+        }
+        const grantType = form.getFieldValue('grantType');
+        //发放油费
+        dispatch({
+          type: 'oilfee/fetchProvideDistribute',
+          payload: {
+            member_id: 26,
+            grantType,
+            data: objList,
+          },
+        }).then(() => {
+          const { form } = this.props;
+          const { provideDistribute } = this.props.oilfee;
+          const { activeKey } = this.props;
+          switch (provideDistribute.err) {
+            //err=0成功
+            case 0:
+              message.success(provideDistribute.msg);
+              activeKey('list');
+              //清空发放页面的旧数据
+              this.setState({
+                willRenderTableData: [],
+              });
+              //清空选择框旧数据
+              this.selectedRows = [];
+              //清空发放对象
+              //清空等额发放旧数据
+              form.resetFields();
+              //清空是否等额发放
+              this.setState({
+                isAverage: false,
+              });
+              //总账户详情
+              dispatch({
+                type: 'oilfee/fetch1',
+                payload: { member_id: 26 },
+              });
+              //获取公司
+              dispatch({
+                type: 'oilfee/fetchProvideCompany',
+                payload: {
+                  member_id: 26,
+                  page: 1,
+                  pageSize: 10,
+                  // isAll: 1,
+                  isCount: 1,
+                },
+              });
+              //获取司机
+              dispatch({
+                type: 'oilfee/fetchProvideDriver',
+                payload: {
+                  member_id: 26,
+                  page: 1,
+                  pageSize: 10,
+                  // isAll: 1,
+                  isCount: 1,
+                  distribute: 1,
+                },
+              });
+              this.allCheckboxes = this.state.isDriver == '2' ? this.allDrivers : this.allMotorcade;
+              this.setState({
+                allCheckboxes: this.allCheckboxes,
+              });
+              this.setState({
+                checkboxModalVisible: !!status,
+                selectedRowsKeys2: [],
+              });
+              break;
+            default:
+              message.warning(provideDistribute.msg);
+          }
+        });
       }
     });
   };
@@ -145,183 +209,296 @@ export default class OilFeeGrantComponent extends PureComponent {
       isAverage: !this.state.isAverage,
     });
   };
-  // 点击选择后出现的弹窗
+
+  // 点击弹窗确定或取消按钮后的回调
   toggleCheckboxModal = status => {
+    const { form, dispatch } = this.props;
+    //清空搜索框数据
+    form.resetFields('search');
+    //重置搜索前的原始数据
+    //获取公司
+    dispatch({
+      type: 'oilfee/fetchProvideCompany',
+      payload: {
+        member_id: 26,
+        page: 1,
+        pageSize: 10,
+        // isAll: 1,
+        isCount: 1,
+      },
+    });
+    //获取司机
+    dispatch({
+      type: 'oilfee/fetchProvideDriver',
+      payload: {
+        member_id: 26,
+        page: 1,
+        pageSize: 10,
+        // isAll: 1,
+        isCount: 1,
+        distribute: 1,
+      },
+    });
+    this.allCheckboxes = this.state.isDriver == '2' ? this.allDrivers : this.allMotorcade;
     this.setState({
-      checkboxModalVisible: status,
-      //弹窗的item依次放进allCheckboxesItems
-      allCheckboxesItems: this.allCheckboxes.map(k => {
-        return (
-          <Col span={12} style={{ marginBottom: 12 }} key={k.id}>
-            <Checkbox value={k.id}>
-              {k.name} - {k.charge}
-            </Checkbox>
-          </Col>
-        );
-      }),
+      allCheckboxes: this.allCheckboxes,
+    });
+
+    this.setState({
+      checkboxModalVisible: !!status,
+      selectedRowsKeys2: [],
     });
   };
+
   // 选择划拨对象后 页面展示
   handleSelectChange = value => {
     this.allCheckboxes = value == '2' ? this.allDrivers : this.allMotorcade;
     this.setState({
       isDriver: value,
       willRenderTableData: [],
-      indeterminate: false,
-      checkedAll: false,
-      checkedMotocardId: [],
-      checkedDriversId: [],
-      allCheckboxes: value == '2' ? this.allDrivers : this.allMotorcade,
-    });
-    console.log(this.checkedDriversId, this.checkedMotocardId);
-  };
-  // 单个选择
-  selectedChange = checkedList => {
-    console.log(99);
-    console.log(checkedList, 'danxuan');
-    // this.checkedMotocardId = checkedList;
-    // this.checkedDriversId = checkedList;
-    this.setState({
-      indeterminate: !!checkedList.length && checkedList.length < this.allCheckboxes.length,
-      checkedAll: checkedList.length === this.state.allCheckboxes.length,
-      checkedMotocardId: checkedList,
-      checkedDriversId: checkedList,
+      allCheckboxes: this.allCheckboxes,
     });
   };
-  // 全选 取消全选
-  onCheckedAll = e => {
-    const list = e.target.checked ? this.state.allCheckboxes.map(k => k.id) : [];
-    console.log(list);
-    this.setState({
-      indeterminate: false,
-      checkedAll: e.target.checked,
-      checkedMotocardId: list,
-      checkedDriversId: list,
-    });
-  };
-  // 选择之后的添加操作
+
+  // 选择对话框的确定按钮
   handleAddMotorcade = () => {
-    const selectedIds =
-      this.state.isDriver == '2' ? this.state.checkedDriversId : this.state.checkedMotocardId;
+    let array = Array.from(new Set([...this.state.willRenderTableData, ...this.selectedRows]));
+    //去重
+    let hash = {};
+    array = array.reduce((preVal, curVal) => {
+      hash[curVal.key] ? '' : (hash[curVal.key] = true && preVal.push(curVal));
+      return preVal;
+    }, []);
     this.setState({
-      willRenderTableData: this.state.allCheckboxes.filter(k => selectedIds.includes(k.id)),
+      willRenderTableData: array,
+      current: 1,
+      pageSize: 10,
     });
     this.toggleCheckboxModal(false);
   };
 
   // 司机/分公司弹框的搜索框
   handleSearch = value => {
-    console.log('value = ' + value);
-    let allCheckboxes = [];
-    const isDriver = this.state.isDriver == '2';
-    let checkedAll = false;
-
-    if (isDriver) {
-      // 司机
-      allCheckboxes = this.allDrivers.filter(item => item.mobile.indexOf(value) > -1);
-    } else {
-      // 分公司
-      allCheckboxes = this.allMotorcade.filter(item => item.name.indexOf(value) > -1);
-    }
-    const newIds = allCheckboxes.map(item => item.id);
-    const checkedDriversId = newIds.filter(i => this.state.checkedDriversId.includes(i));
-    const checkedMotocardId = newIds.filter(i => this.state.checkedDriversId.includes(i));
-    if (isDriver) {
-      // 司机
-      checkedAll = allCheckboxes.length === checkedDriversId.length;
-    } else {
-      // 分公司
-      checkedAll = allCheckboxes.length === checkedMotocardId.length;
-    }
-    // 搜索内容为空
-    if (allCheckboxes.length === 0) {
-      checkedAll = false;
-    }
-    console.log(newIds, checkedDriversId, allCheckboxes);
+    const { dispatch } = this.props;
     this.setState({
-      allCheckboxes,
-      checkedDriversId,
-      checkedMotocardId,
-      indeterminate: isDriver ? checkedDriversId.length > 0 : checkedMotocardId.length > 0,
-      checkedAll,
+      searchText: value,
     });
-    console.log('this.allCheckboxes = ' + allCheckboxes);
+    const isDriver = this.state.isDriver == '2';
+    if (isDriver) {
+      //获取司机
+      //value,全部数字，则为手机
+      let re = /^\d+$/;
+      let params;
+      if (re.test(value)) {
+        params = {
+          mobilePhone: value,
+        };
+      } else {
+        params = {
+          employeeName: value,
+        };
+      }
+
+      dispatch({
+        type: 'oilfee/fetchProvideDriver',
+        payload: {
+          member_id: 26,
+          page: 1,
+          pageSize: 10,
+          isAll: 0,
+          isCount: 1,
+          distribute: 1,
+          ...params,
+        },
+      }).then(() => {
+        this.setState({
+          allCheckboxes: this.allDrivers,
+          current: 1,
+          pageSize: 10,
+        });
+      });
+    } else {
+      //获取公司
+      dispatch({
+        type: 'oilfee/fetchProvideCompany',
+        payload: {
+          member_id: 26,
+          page: 1,
+          pageSize: 10,
+          // isAll: 1,
+          isCount: 1,
+          branchName: value,
+        },
+      }).then(() => {
+        this.setState({
+          allCheckboxes: this.allMotorcade,
+          current: 1,
+          pageSize: 10,
+        });
+      });
+    }
+  };
+
+  //列表变化翻页的回调
+  handleStandardTableChange = (pagination, filtersArg, sorter) => {
+    const { dispatch } = this.props;
+    if (this.state.isDriver == '2') {
+      // 司机
+      //value,全部数字，则为手机
+      let re = /^\d+$/;
+      let params;
+      if (re.test(this.state.searchText)) {
+        params = {
+          mobilePhone: this.state.searchText,
+        };
+      } else {
+        params = {
+          employeeName: this.state.searchText,
+        };
+      }
+      //获取司机
+      dispatch({
+        type: 'oilfee/fetchProvideDriver',
+        payload: {
+          member_id: 26,
+          page: pagination.current,
+          pageSize: pagination.pageSize,
+          // isAll: 1,
+          isCount: 1,
+          distribute: 1,
+          ...params,
+        },
+      }).then(() => {
+        this.setState({
+          allCheckboxes: this.allDrivers,
+          current: pagination.current,
+          pageSize: pagination.pageSize,
+        });
+      });
+    } else {
+      //获取公司
+      dispatch({
+        type: 'oilfee/fetchProvideCompany',
+        payload: {
+          member_id: 26,
+          page: pagination.current,
+          pageSize: pagination.pageSize,
+          // isAll: 1,
+          isCount: 1,
+          branchName: this.state.searchText,
+        },
+      }).then(() => {
+        this.setState({
+          allCheckboxes: this.allMotorcade,
+          current: pagination.current,
+          pageSize: pagination.pageSize,
+        });
+      });
+    }
   };
 
   // 选择车队、分公司 modal
-  renderMotorcadeComponent = () => {
+  renderMotorcadeComponent = (provideCompanyCount, provideDriverCount) => {
+    const columns = [
+      {
+        title: this.state.isDriver == '2' ? '司机姓名/手机号' : '分公司名称',
+        dataIndex: 'name',
+      },
+      {
+        title: '可用余额',
+        dataIndex: 'charge',
+      },
+    ];
+    // rowSelection object indicates the need for row selection
+    const rowSelection = {
+      selectedRowKeys: this.state.selectedRowsKeys2,
+      onChange: (selectedRowKeys, selectedRows) => {
+        // console.log(`selectedRowKeys: ${selectedRowKeys}`, 'selectedRows: ', selectedRows);
+        let array = Array.from(new Set([...this.selectedRows, ...selectedRows]));
+        //去重
+        let hash = {};
+        array = array.reduce((preVal, curVal) => {
+          hash[curVal.key] ? '' : (hash[curVal.key] = true && preVal.push(curVal));
+          return preVal;
+        }, []);
+        this.selectedRows = array.filter(item => selectedRowKeys.includes(item.key));
+        //超过某个条数，直接弹出警告，并返回
+        if (this.selectedRows.length > 200) {
+          notification.open({
+            message: '提醒',
+            description: '发放数量超过200条，请通过批量导入的方式发放油费！',
+          });
+          return;
+        }
+        this.setState({
+          selectedRowsKeys2: selectedRowKeys,
+        });
+      },
+      getCheckboxProps: record => ({
+        disabled: record.name === 'Disabled User', // Column configuration not to be checked
+        name: record.name,
+      }),
+    };
+    let count;
+    if (this.state.isDriver == '2') {
+      //司机
+      count = provideDriverCount;
+    } else {
+      count = provideCompanyCount;
+    }
+    //分页属性设置
+    const paginationProps = {
+      showQuickJumper: true,
+      showSizeChanger: true,
+      total: count,
+      current: this.state.current,
+      pageSize: this.state.pageSize,
+      showTotal: () => `共计 ${count} 条`,
+    };
+    const { form } = this.props;
+    const { getFieldDecorator } = form;
     return (
       <Modal
         title={this.state.isDriver == '2' ? '选择司机' : '选择分公司/车队'}
         width={850}
-        style={{ maxHeight: 600, overflowY: 'scroll' }}
+        // style={{ maxHeight: 400, marginBottom: 30 }}
         visible={this.state.checkboxModalVisible}
         onCancel={() => this.toggleCheckboxModal(false)}
         onOk={this.handleAddMotorcade}
       >
-        <div style={{ borderBottom: '1px solid #E9E9E9', marginBottom: 20, paddingBottom: 20 }}>
+        <div style={{ borderBottom: '1px solid #E9E9E9', marginBottom: 10, paddingBottom: 10 }}>
           <Row>
             <Col span={12} offset={4}>
-              <Search
-                placeholder={this.state.isDriver == '2' ? '司机手机号' : '分公司名称'}
-                enterButton="查询"
-                size="default"
-                onSearch={this.handleSearch}
-              />
-            </Col>
-            <Col span={8} style={{ textAlign: 'right' }}>
-              <Checkbox
-                indeterminate={this.state.indeterminate}
-                onChange={this.onCheckedAll}
-                checked={this.state.checkedAll}
-              >
-                全选
-              </Checkbox>
+              {getFieldDecorator('search', {})(
+                <Search
+                  placeholder={this.state.isDriver == '2' ? '司机姓名 / 手机号' : '分公司名称'}
+                  enterButton="查询"
+                  size="default"
+                  onSearch={this.handleSearch}
+                />
+              )}
             </Col>
           </Row>
         </div>
-        <Checkbox.Group
-          style={{ width: '100%' }}
-          value={
-            this.state.isDriver == '2' ? this.state.checkedDriversId : this.state.checkedMotocardId
-          }
-          onChange={this.selectedChange}
-        >
-          <Row>
-            {this.state.allCheckboxes.map(k => {
-              return (
-                <Col span={12} style={{ marginBottom: 12 }} key={k.id}>
-                  <Checkbox value={k.id}>
-                    {k.name} - {k.charge}
-                  </Checkbox>
-                </Col>
-              );
-            })}
-          </Row>
-        </Checkbox.Group>
+        <Table
+          pagination={paginationProps}
+          rowSelection={rowSelection}
+          columns={columns}
+          dataSource={this.state.allCheckboxes}
+          onChange={this.handleStandardTableChange}
+        />
       </Modal>
     );
   };
+
   // 车队、分公司 删除某一项
   handleDelete = row => {
     const willRenderTableData = [...this.state.willRenderTableData];
-    const checkedMotocardId = [...this.state.checkedMotocardId];
-    const checkedDriversId = [...this.state.checkedDriversId];
-
-    const isDriver = this.state.isDriver == '2';
     this.setState({
       willRenderTableData: willRenderTableData.filter(item => item.key != row.key),
-      checkedMotocardId: checkedMotocardId.filter(item => item != row.id),
-      checkedDriversId: checkedDriversId.filter(item => item != row.id),
     });
-    setTimeout(() => {
-      this.setState({
-        indeterminate: isDriver
-          ? this.state.checkedDriversId && this.state.checkedDriversId.length > 0
-          : this.state.checkedMotocardId && this.state.checkedMotocardId.length > 0,
-      });
-    }, 0);
   };
+
   // 均值发生变化
   averageHasChanged = e => {
     const averageCount = e.target.value || '0';
@@ -331,6 +508,7 @@ export default class OilFeeGrantComponent extends PureComponent {
     let willRenderTableData = this.state.willRenderTableData;
     willRenderTableData = willRenderTableData.map(k => (k.average = averageCount));
   };
+
   // 输入单项的发放金额
   changeEvent = (e, record) => {
     console.log(e, record);
@@ -343,11 +521,12 @@ export default class OilFeeGrantComponent extends PureComponent {
       }
     }
   };
+
   render() {
-    const { oilfee } = this.props;
+    const { oilfee, loading } = this.props;
     const { form, modalVisible, handleModalVisible } = this.props;
     const { getFieldDecorator, getFieldValue } = form;
-    const { provideCompany, provideDriver } = oilfee;
+    const { provideCompany, provideDriver, provideCompanyCount, provideDriverCount } = oilfee;
 
     if (provideCompany != undefined && provideCompany.length > 0) {
       //所有的分公司
@@ -356,11 +535,14 @@ export default class OilFeeGrantComponent extends PureComponent {
         this.allMotorcade.push({
           id: item.companyBranchId,
           name: item.companyBranchName,
-          charge: `可用余额： ${item.balance}`,
+          charge: item.balance,
           key: item.key,
         });
       });
+    } else {
+      this.allMotorcade = [];
     }
+
     if (provideDriver != undefined && provideDriver.length > 0) {
       //所有的司机
       this.allDrivers = [];
@@ -368,11 +550,14 @@ export default class OilFeeGrantComponent extends PureComponent {
         this.allDrivers.push({
           id: item.employeeId,
           name: `${item.employeeName} ${item.employeeMobile}`,
-          charge: `可用余额： ${item.balance}`,
+          charge: item.balance,
           key: item.key,
           mobile: item.employeeMobile,
+          employeeName: item.employeeName,
         });
       });
+    } else {
+      this.allDrivers = [];
     }
 
     const formItemLayout = {
@@ -459,7 +644,7 @@ export default class OilFeeGrantComponent extends PureComponent {
               <Switch
                 checkedChildren="是"
                 unCheckedChildren="否"
-                defaultChecked={this.state.isAverage}
+                checked={this.state.isAverage}
                 onChange={this.onSwitchChange}
               />
             )}
@@ -486,7 +671,11 @@ export default class OilFeeGrantComponent extends PureComponent {
           {this.state.willRenderTableData.length > 0 ? (
             <Row span={24}>
               <Col {...renderTableDataLayout}>
-                <Table dataSource={this.state.willRenderTableData} columns={motorcadeColumns} />
+                <Table
+                  dataSource={this.state.willRenderTableData}
+                  columns={motorcadeColumns}
+                  loading={loading}
+                />
               </Col>
             </Row>
           ) : null}
@@ -495,10 +684,9 @@ export default class OilFeeGrantComponent extends PureComponent {
             <Button type="primary" htmlType="submit">
               提交
             </Button>
-            {/* <Button style={{ marginLeft: 8 }}>重置</Button> */}
           </FormItem>
         </Form>
-        {this.renderMotorcadeComponent()}
+        {this.renderMotorcadeComponent(provideCompanyCount, provideDriverCount)}
       </div>
     );
   }

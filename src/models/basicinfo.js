@@ -1,6 +1,7 @@
 import {
   queryBasicinfo1,
   queryBasicinfo1Branch,
+  queryBasicinfo1BranchEdit,
   queryBasicinfo2,
   queryBasicinfo3,
   queryCloseUser,
@@ -15,12 +16,21 @@ import {
   queryUpdateUser,
   queryUpdateSubsidiary,
   querySubsidiaryInfo,
-  querySubsidiaryOptions,
   queryAddSubsidiary,
   queryResetPassword,
   queryGetUserData,
   querySubsidiaryDownloadTemplet,
   querySubsidiaryImportDriverInfo,
+  queryDingNotice,
+  queryNoticeList,
+  queryAppRoleInfo,
+  queryAppRoleOne,
+  queryAppRoleSaveOne,
+  queryAppGetMenuRole,
+  querySetRoleAuth,
+  queryUsersRole,
+  querySetRoleAdd,
+  queryDelRole
 } from '../services/api';
 
 export default {
@@ -28,41 +38,60 @@ export default {
 
   state: {
     subsidiaryList: [],
+    //分公司管理-上级分公司，全部
     subsidiaryBranchList: [],
+    //分公司管理-上级分公司-新增
+    subsidiaryBranchList2: [],
+    //分公司管理-上级分公司-编辑
+    subsidiaryBranchList3: [],
     driverList: [],
     accountList: [],
-    //所属分公司
+    //司机管理-所属分公司，全部
     branchCompany: [],
+    //司机管理-所属分公司
+    branchCompany2: [],
     //是否有效
     isValid: {},
-    driverInfo: {},//司机编辑
+    driverInfo: {}, //司机编辑
     driverUpdate: {},
     driverAdd: {},
     driverDel: {},
     userStatus: {},
     addUser: {}, //账号编辑
     subsidiaryInfo: {}, //分公司编辑
+    userMsg:{},//编辑状态ma
     userInfo: {}, //账号编辑
     updateUser: {},
     resetPassword: {},
     updateSubsidiary: {},
     addSubsidiary: {},
     getUserData: {},
-    subsidiaryOptions: [],
     subsidiaryTemplet: {},
     subsidiaryImportDriverInfo: {},
+    dingNotice: {},
+    noticeList: [],
+    appRoleList:[],//角色权限列表
+    appRoleOne:[],//角色详情
+    setRoleOne:[],//新增角色状态码
+    appRoleSaveMsg:[],//编辑权限 状态码
+    appMenuRole:[],//权限菜单
+    setRoleAuth:[],//设置权限 状态码
+    getUsersRole:[],//用户角色下拉列表
+    delRole:[],//删除角色 状态吗
   },
 
   effects: {
     //分公司管理下拉列表
     *fetch1({ payload }, { call, put }) {
       const response = yield call(queryBasicinfo1, payload);
-      yield put({
-        type: 'save',
-        payload: {
-          subsidiaryList: response.res,
-        },
-      });
+      if (response) {
+        yield put({
+          type: 'save',
+          payload: {
+            subsidiaryList: response.res,
+          },
+        });
+      }
     },
     // 二级分公司新增公司判断
     *getUserData({ payload }, { call, put }) {
@@ -74,41 +103,92 @@ export default {
         },
       });
     },
+    //分公司管理-上级分公司，全部
     *fetch1Branch({ payload }, { call, put }) {
+      const response = yield call(queryBasicinfo1Branch, payload);
+      if (response) {
+        yield put({
+          type: 'save',
+          payload: {
+            subsidiaryBranchList: response.res.list,
+          },
+        });
+      }
+    },
+    //分公司管理-上级分公司-新增
+    *fetch1BranchAdd({ payload }, { call, put }) {
       const response = yield call(queryBasicinfo1Branch, payload);
       yield put({
         type: 'save',
         payload: {
-          subsidiaryBranchList: response.res.list,
+          subsidiaryBranchList2: response.res.list,
+        },
+      });
+    },
+    //分公司管理-上级分公司-编辑
+    *fetch1BranchEdit({ payload }, { call, put }) {
+      const response = yield call(queryBasicinfo1BranchEdit, payload);
+      yield put({
+        type: 'save',
+        payload: {
+          subsidiaryBranchList3: response.res.list,
         },
       });
     },
     //司机管理下拉列表
     *fetch2({ payload }, { call, put }) {
       const response = yield call(queryBasicinfo2, payload);
-      yield put({
-        type: 'save',
-        payload: {
-          driverList: response.res,
-        },
-      });
+      if (response) {
+        yield put({
+          type: 'save',
+          payload: {
+            driverList: response.res,
+          },
+        });
+      }
+    },
+    //获取异步上传文件已处理未读个数
+    *dingNotice({ payload }, { call, put }) {
+      const response = yield call(queryDingNotice, payload);
+      if (response) {
+        yield put({
+          type: 'save',
+          payload: {
+            dingNotice: response.res,
+          },
+        });
+      }
+    },
+    //异步文件未读消息列表
+    *noticeList({ payload }, { call, put }) {
+      const response = yield call(queryNoticeList, payload);
+      if (response) {
+        yield put({
+          type: 'save',
+          payload: {
+            noticeList: response.res,
+          },
+        });
+      }
     },
     //账号管理下拉列表
     *fetch3({ payload }, { call, put }) {
       const response = yield call(queryBasicinfo3, payload);
-      yield put({
-        type: 'save',
-        payload: {
-          accountList: response.res,
-        },
-      });
+      if (response) {
+        yield put({
+          type: 'save',
+          payload: {
+            accountList: response.res,
+          },
+        });
+      }
     },
     *closeUser({ payload }, { call, put }) {
       const response = yield call(queryCloseUser, payload);
       yield put({
         type: 'save',
         payload: {
-          userStatus: response.res,
+          userStatus: response,//接收状态 需要捕获错误值 response.res
         },
       });
     },
@@ -121,13 +201,25 @@ export default {
         },
       });
     },
-
+    //司机管理-所属分公司，全部
     *fetchBranchCompany({ payload }, { call, put }) {
+      const response = yield call(queryBasicinfoBranch, payload);
+      if (response) {
+        yield put({
+          type: 'save',
+          payload: {
+            branchCompany: response.res.info,
+          },
+        });
+      }
+    },
+    //司机管理-所属分公司
+    *fetchBranchCompany2({ payload }, { call, put }) {
       const response = yield call(queryBasicinfoBranch, payload);
       yield put({
         type: 'save',
         payload: {
-          branchCompany: response.res.info,
+          branchCompany2: response.res.info,
         },
       });
     },
@@ -197,7 +289,8 @@ export default {
       yield put({
         type: 'save',
         payload: {
-          userInfo: response.res,
+          userMsg: response,
+          userInfo: response.res,//response.res
         },
       });
     },
@@ -208,7 +301,7 @@ export default {
       yield put({
         type: 'save',
         payload: {
-          resetPassword: response.res,
+          resetPassword: response,
         },
       });
     },
@@ -243,16 +336,6 @@ export default {
         },
       });
     },
-    // 编辑公司下拉列表
-    *subsidiaryOptions({ payload }, { call, put }) {
-      const response = yield call(querySubsidiaryOptions, payload);
-      yield put({
-        type: 'save',
-        payload: {
-          subsidiaryOptions: response.res.list,
-        },
-      });
-    },
     // 下载模板-司机查询
     *subsidiaryDownloadTemplet({ payload }, { call, put }) {
       const response = yield call(querySubsidiaryDownloadTemplet, payload);
@@ -273,7 +356,86 @@ export default {
         },
       });
     },
-
+    // 账号管理-角色查询 new
+    *fetchappRoleInfo({ payload }, { call, put }) {
+      const response = yield call(queryAppRoleInfo, payload);
+      yield put({
+        type: 'save',
+        payload: {
+          appRoleList: response.res,
+        },
+      });
+    },
+    // 账号管理-角色详情 new
+    *fetchappRoleOne({ payload }, { call, put }) {
+      const response = yield call(queryAppRoleOne, payload);
+      yield put({
+        type: 'save',
+        payload: {
+          appRoleOne: response.res,
+        },
+      });
+    },
+    // 账号管理-新增角色 new
+    *fetchSetRoleOne({ payload }, { call, put }) {
+      const response = yield call(querySetRoleAdd, payload);
+      yield put({
+        type: 'save',
+        payload: {
+          setRoleOne: response,
+        },
+      });
+    },
+    // 账号管理-编辑角色 new
+    *fetchappRoleSaveOne({ payload }, { call, put }) {
+      const response = yield call(queryAppRoleSaveOne, payload);
+      yield put({
+        type: 'save',
+        payload: {
+          appRoleSaveMsg: response,
+        },
+      });
+    },
+    // 账号管理-获取权限菜单
+    *fetchappGetRoleMenu({ payload }, { call, put }) {
+      const response = yield call(queryAppGetMenuRole, payload);
+      yield put({
+        type: 'save',
+        payload: {
+          appMenuRole: response.res,
+        },
+      });
+    },
+    // 账号管理-设置权限
+    *fetchSetRoleAuth({ payload }, { call, put }) {
+      const response = yield call(querySetRoleAuth, payload);
+      yield put({
+        type: 'save',
+        payload: {
+          setRoleAuth: response,
+        },
+      });
+    },
+    // 账号管理-删除权限
+    *fetchDelRole({ payload }, { call, put }) {
+      const response = yield call(queryDelRole, payload);
+      yield put({
+        type: 'save',
+        payload: {
+          delRole: response,
+        },
+      });
+    },
+    // 用户管理-权限下拉菜单
+    *fetchGetUsersRole({ payload }, { call, put }) {
+      const response = yield call(queryUsersRole, payload);
+      yield put({
+        type: 'save',
+        payload: {
+          getUsersRole: response.res,
+        },
+      });
+    }
   },
 
   reducers: {

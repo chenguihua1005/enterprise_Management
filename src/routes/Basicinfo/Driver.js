@@ -16,14 +16,17 @@ import {
   Popconfirm,
   Upload,
   Icon,
+  notification,
 } from 'antd';
 import reqwest from 'reqwest';
+import { baseUrl } from '../../services/api';
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
 import styles from './Basicinfo.less';
 
 const FormItem = Form.Item;
 const { Option } = Select;
 const { TextArea } = Input;
+const { confirm } = Modal.confirm;
 
 //批量导入，弹框
 const CreateForm2 = Form.create()(props => {
@@ -32,7 +35,7 @@ const CreateForm2 = Form.create()(props => {
     form,
     setImportmodal,
     setDownload,
-    branchOptions,
+    branchOptions2,
     handleAdd2,
     propsUpload,
   } = props;
@@ -40,8 +43,9 @@ const CreateForm2 = Form.create()(props => {
   const okHandle = () => {
     form.validateFields((err, fieldsValue) => {
       if (err) return;
-      form.resetFields();
-      handleAdd2(fieldsValue);
+      //不要清空所属分公司
+      //form.resetFields();
+      handleAdd2(fieldsValue, form);
     });
   };
 
@@ -53,12 +57,15 @@ const CreateForm2 = Form.create()(props => {
       visible={importModal}
       okText="上传"
       onOk={okHandle}
-      onCancel={() => setImportmodal()}
+      onCancel={() => setImportmodal(false)}
+      destroyOnClose={true}
     >
       <Row>
         <Col span={12}>
-          <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 15 }} label="*司机信息">
-            {getFieldDecorator('excel', {})(
+          <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 15 }} label="司机信息">
+            {getFieldDecorator('excel', {
+              rules: [{ required: true, message: '请选择司机信息' }],
+            })(
               // (<input type="file" name="excel" />)
               <Upload {...propsUpload}>
                 <Button>
@@ -73,6 +80,7 @@ const CreateForm2 = Form.create()(props => {
         <Col span={12}>
           <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 15 }} label="所属分公司">
             {getFieldDecorator('belongCompanyId', {
+              rules: [{ required: true, message: '请选择所属分公司' }],
               // initialValue: '0',
             })(
               <Select
@@ -80,7 +88,7 @@ const CreateForm2 = Form.create()(props => {
                 // onChange={this.handleBranchList}
                 style={{ width: '100%' }}
               >
-                {branchOptions}
+                {branchOptions2}
               </Select>
             )}
           </FormItem>
@@ -110,7 +118,7 @@ const CreateForm = Form.create()(props => {
     form,
     handleAdd,
     closeModalVisible,
-    branchOptions,
+    branchOptions2,
     ValidationOptions,
     driverData,
     isChange,
@@ -119,7 +127,7 @@ const CreateForm = Form.create()(props => {
   const okHandle = e => {
     form.validateFields((err, fieldsValue) => {
       if (err) return;
-      handleAdd(fieldsValue);
+      handleAdd(fieldsValue, form);
       // form.resetFields();
     });
   };
@@ -144,23 +152,6 @@ const CreateForm = Form.create()(props => {
       callback('请输入11位的手机号码！');
     }
   };
-  let tempBranchOptions = branchOptions;
-  const tempKey = driverData.belongCompanyId+'';
-  tempBranchOptions.forEach(option => {
-    if (option.key === tempKey){
-      if (tempKey !== 'undefined') {
-        tempBranchOptions.push(
-          <Option
-            key={driverData.belongCompanyId}
-            value={driverData.belongCompanyId}
-          >
-            暂无数据
-          </Option>
-        );
-      }
-    }
-  });
-  
 
   //编辑需要请求数据渲染
   return (
@@ -187,9 +178,9 @@ const CreateForm = Form.create()(props => {
           </FormItem>
         </Col>
         <Col span={12}>
-          <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 15 }} label="*姓名">
+          <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 15 }} label="姓名">
             {getFieldDecorator('employeeName', {
-              basicinfo: [{ required: true, message: '请输入姓名' }],
+              rules: [{ type: 'string', required: true, message: '请输入姓名!' }],
               initialValue: driverData.employeeName,
             })(<Input placeholder="请输入" />)}
           </FormItem>
@@ -200,16 +191,15 @@ const CreateForm = Form.create()(props => {
           <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 15 }} label="所属分公司">
             {getFieldDecorator('companyId', {
               basicinfo: [{ required: true, message: 'Please input some description...' }],
-              initialValue: driverData.belongCompanyId
-              ,
+              initialValue: driverData.belongCompanyId,
             })(
               <Select
-              id="sel"
+                id="sel"
                 placeholder="请选择"
                 // onChange={this.handleBranchList}
                 style={{ width: '100%' }}
               >
-                {tempBranchOptions}
+                {branchOptions2}
               </Select>
             )}
           </FormItem>
@@ -252,11 +242,12 @@ const CreateForm = Form.create()(props => {
 
 @connect(({ basicinfo, loading }) => ({
   basicinfo,
-  loading: loading.effects['basicinfo/fetch2','basicinfo/subsidiaryDownloadTemplet'],
+  loading: loading.effects[('basicinfo/fetch2', 'basicinfo/subsidiaryDownloadTemplet')],
 }))
 @Form.create()
 export default class Driver extends PureComponent {
   state = {
+    current: 1,
     isChange: false, //默认新增
     driverProps: {
       bindRelationId: '',
@@ -273,7 +264,7 @@ export default class Driver extends PureComponent {
     driverData: {
       employeeMobile: '',
       employeeName: '',
-      companyId: '',
+      companyId: '0',
       status: '',
       remark: '',
     },
@@ -300,19 +291,22 @@ export default class Driver extends PureComponent {
       },
     });
 
-    //所属分公司下拉框
+    //司机管理-所属分公司，全部
     dispatch({
       type: 'basicinfo/fetchBranchCompany',
       payload: {
         member_id: 4,
+        isNeedAll: 1, //是否需要全部字段 1需要
       },
     });
-    // dispatch({
-    //   type: 'basicinfo/fetchValidation',
-    //   payload: {
-    //     modelName: 'driver',
-    //   },
-    // });
+    //司机管理-所属分公司
+    dispatch({
+      type: 'basicinfo/fetchBranchCompany2',
+      payload: {
+        member_id: 4,
+        isNeedAll: 0,
+      },
+    });
   }
 
   //重置
@@ -329,23 +323,13 @@ export default class Driver extends PureComponent {
         pageSize: 10,
         isCount: 1,
       },
+    }).then(() => {
+      this.setState({
+        current: 1
+      })
     });
   };
 
-  handleStandardTableChange = (pagination, filtersArg, sorter) => {
-    const { dispatch } = this.props;
-    const params = {
-      member_id: 4,
-      page: pagination.current,
-      pageSize: pagination.pageSize,
-      isCount: 1,
-    };
-
-    dispatch({
-      type: 'basicinfo/fetch2',
-      payload: params,
-    });
-  };
   // close关闭modal
   closeModalVisible = flag => {
     const { dispatch, form } = this.props;
@@ -353,6 +337,7 @@ export default class Driver extends PureComponent {
       modalVisible: flag,
     });
   };
+
   // 新增司机 编辑司机对话框
   setModalVisible = (flag, record) => {
     const { dispatch, form } = this.props;
@@ -394,8 +379,8 @@ export default class Driver extends PureComponent {
   };
 
   //添加成功
-  handleAdd = fields => {
-    const { dispatch, form } = this.props;
+  handleAdd = (fields, form) => {
+    const { dispatch } = this.props;
     const { isChange, driverProps } = this.state;
     //判段是否选择了选项，是的话id
     if (fields.hasOwnProperty('companyId') == undefined) {
@@ -491,8 +476,16 @@ export default class Driver extends PureComponent {
     }
   };
 
+  countDown = () => {
+    let secondsToGo = 5;
+    const modal = Modal.success({
+      // title: 'This is a notification message',
+      content: `
+      文件上传中，可能需要几分钟处理时间，您可以先操作其他页面，处理完成后系统会提示您`,
+    });
+  };
   //上传
-  handleAdd2 = fields => {
+  handleAdd2 = (fields, form) => {
     // const { dispatch } = this.props;
     const { fileList } = this.state;
     const formData = new FormData();
@@ -503,8 +496,7 @@ export default class Driver extends PureComponent {
     // formData.append('excel', fields.excel.file);
     // You can use any AJAX library you like
     reqwest({
-      // url: '//jsonplaceholder.typicode.com/posts/',
-      url: '//test.api-bms.51zhaoyou.com/bms/driver/importDriverInfo',
+      url: baseUrl + 'driver/importDriverInfo',
       method: 'post',
       processData: false,
       headers: {
@@ -512,23 +504,193 @@ export default class Driver extends PureComponent {
       },
       data: formData,
       success: response => {
-        // message.success('upload successfully.');
-        message.success(response.msg);
-        //部分成功，response.err=15556,response.res.downLoadUrl != "",下载出错提示文件
-        if (response.err == 15556 && response.res.downLoadUrl != '') {
-          window.open(response.res.downLoadUrl);
-        }
+        const { dispatch } = this.props;
+        //清空司机信息excel列表
         this.setState({
-          modalVisible: false,
+          fileList: [],
         });
+        if (response.err === 0) {
+          this.setState({
+            importModal: false,
+          });
+          this.countDown();
+           //清空所属分公司旧数据
+          form.resetFields('belongCompanyId');
+          this.getinfo();
+          // setInterval(this.getinfo(),2000);
+
+
+
+          // 获取异步上传文件已处理未读个数
+          // dispatch({
+          //   type: 'basicinfo/dingNotice',
+          //   payload: {},
+          // }).then(() => {
+          //   const { dingNotice } = this.props.basicinfo;
+          //   if (dingNotice.num > 0) {
+          //     //异步文件未读消息列表
+          //     dispatch({
+          //       type: 'basicinfo/noticeList',
+          //       payload: {
+          //         isCount: 1,
+          //       },
+          //     }).then(() => {
+          //       const { noticeList } = this.props.basicinfo;
+          //       const list = noticeList.list;
+          //       this.openNotification(list);
+          //       //清空所属分公司旧数据
+          //       form.resetFields('belongCompanyId');
+          //       //刷新
+          //       //司机管理下拉列表
+          //       dispatch({
+          //         type: 'basicinfo/fetch2',
+          //         payload: {
+          //           member_id: 4,
+          //           page: 1,
+          //           pageSize: 10,
+          //           isCount: 1,
+          //         },
+          //       });
+          //     });
+          //   }
+          // });
+        } else {
+          message.error(response.msg);
+        }
+
+        // message.success('upload successfully.');
+        // message.success(response.msg);
+        // //部分成功，response.err=15556,response.res.downLoadUrl != "",下载出错提示文件
+        // if (response.err == 15556 && response.res.downLoadUrl != '') {
+        //   window.open(response.res.downLoadUrl);
+        // }
+        // this.setState({
+        //   modalVisible: false,
+        // });
       },
       error: err => {
-        message.error('upload failed.');
-        console.log(err);
+        //清空司机信息excel列表
+        this.setState({
+          fileList: [],
+        });
+        message.error('上传错误!');
       },
     });
   };
-
+  getinfo=()=>{
+    const { dispatch, form } = this.props;
+   // 获取异步上传文件已处理未读个数
+   dispatch({
+    type: 'basicinfo/dingNotice',
+    payload: {},
+  }).then(() => {
+    const { dingNotice } = this.props.basicinfo;
+    if (dingNotice.num > 0) {
+      //异步文件未读消息列表
+      dispatch({
+        type: 'basicinfo/noticeList',
+        payload: {
+          isCount: 1,
+        },
+      }).then(() => {
+        const { noticeList } = this.props.basicinfo;
+        const list = noticeList.list;
+        this.openNotification(list);
+        // //清空所属分公司旧数据
+        // form.resetFields('belongCompanyId');
+        
+        //刷新
+        //司机管理下拉列表
+        dispatch({
+          type: 'basicinfo/fetch2',
+          payload: {
+            member_id: 4,
+            page: 1,
+            pageSize: 10,
+            isCount: 1,
+          },
+        });
+        return false
+      });
+    }else{
+      setTimeout(this.getinfo,3000);
+    }
+  });
+  };
+  openNotification = list => {
+    const key = `open${Date.now()}`;
+    for (var i = 0; i < list.length; i++) {
+      const tmp = list[i];
+      // const notice = tmp.notice_type = 300 ? '油费管理' : '司机管理';
+      if (tmp.err === 0) {
+        notification.success({
+          key,
+          // duration: 0,
+          placement: 'bottomRight',
+          message: (tmp.notice_type === 300 ? '油费管理' : '司机管理') + '文件处理完成！',
+          description: (
+            <div>
+              <p>{tmp.msg}</p>
+              <a href="#" />
+            </div>
+          ),
+          style: {
+            width: 600,
+            marginLeft: 335 - 600,
+          },
+          icon: <Icon type="check-circle" theme="outlined" style={{ color: '#108ee9' }} />,
+          onClose: this.close(key),
+        });
+      } else if (tmp.err === 1) {
+        notification.warning({
+          key,
+          duration: 0,
+          placement: 'bottomRight',
+          message: (tmp.notice_type === 300 ? '油费管理' : '司机管理') + '文件处理完成！',
+          description: (
+            <div>
+              <p>{tmp.msg}</p>
+              <a onClick={() => this.errorDownLoad(tmp.resultFile, key)}>下载错误失败文件</a>
+            </div>
+          ),
+          style: {
+            width: 600,
+            marginLeft: 335 - 600,
+          },
+          icon: <Icon type="exclamation-circle" theme="outlined" style={{ color: '#108ee9' }} />,
+          onClose: this.close(key),
+        });
+      } else {
+        notification.error({
+          key,
+          duration: 0,
+          placement: 'bottomRight',
+          message: (tmp.notice_type === 300 ? '油费管理' : '司机管理') + '文件处理完成！',
+          description: (
+            <div>
+              <p>{tmp.msg}</p>
+              <a onClick={() => this.errorDownLoad(tmp.resultFile, key)}>下载错误失败文件</a>
+            </div>
+          ),
+          style: {
+            width: 600,
+            marginLeft: 335 - 600,
+          },
+          icon: <Icon type="close-circle" theme="outlined" style={{ color: '#f81d22' }} />,
+          onClose: this.close(key),
+        });
+      }
+    }
+  };
+  // 下载导入失败文件
+  errorDownLoad = (url, key) => {
+    window.open(url);
+    notification.close(key);
+  };
+  // 关闭异步弹框
+  close = (key) => {
+    notification.close(key);
+  };
   handleSelectRows = rows => {
     this.setState({
       selectedRows: rows,
@@ -557,7 +719,6 @@ export default class Driver extends PureComponent {
           delete fieldsValue[prop];
         }
       }
-
       const values = {
         ...params,
         employeeMobile: fieldsValue.employeeMobile,
@@ -569,6 +730,50 @@ export default class Driver extends PureComponent {
       dispatch({
         type: 'basicinfo/fetch2',
         payload: values,
+      }).then(() => {
+        this.setState({
+          current: 1
+        })
+      });
+    });
+  };
+
+  //列表变化翻页的回调
+  handleStandardTableChange = (pagination, filtersArg, sorter) => {
+    const { dispatch, form } = this.props;
+    // 表单校验
+    form.validateFields((err, fieldsValue) => {
+      if (err) return;
+      const params = {
+        member_id: 4,
+        page: pagination.current,
+        pageSize: pagination.pageSize,
+        isCount: 1,
+      };
+      for (const prop in fieldsValue) {
+        if (
+          fieldsValue[prop] === '' ||
+          fieldsValue[prop] === '全部' ||
+          fieldsValue[prop] === undefined
+        ) {
+          delete fieldsValue[prop];
+        }
+      }
+      const values = {
+        ...params,
+        employeeMobile: fieldsValue.employeeMobile,
+        employeeName: fieldsValue.employeeName,
+        companyId: fieldsValue.companyId,
+        status: fieldsValue.status,
+      };
+      //司机管理下拉列表
+      dispatch({
+        type: 'basicinfo/fetch2',
+        payload: values,
+      }).then(() => {
+        this.setState({
+          current: pagination.current
+        })
       });
     });
   };
@@ -578,7 +783,12 @@ export default class Driver extends PureComponent {
     this.setState({
       importModal: !!flag,
     });
-    console.log('->setImportmodal');
+    // console.log('->setImportmodal');
+    //清空司机信息excel列表
+    this.setState({
+      fileList: [],
+      // importModal:false
+    });
   };
 
   // 下载模板
@@ -647,17 +857,33 @@ export default class Driver extends PureComponent {
   render() {
     const { getFieldDecorator } = this.props.form;
     const { basicinfo, loading, dispatch } = this.props;
-    const { driverList, branchCompany, isValid, driverUpdate } = basicinfo;
+    const { driverList, branchCompany, branchCompany2, isValid, driverUpdate, dingNotice, noticeList } = basicinfo;
     const { count, list: tabledata } = driverList;
     const { modalVisible, title, importModal } = this.state;
     const { driverData } = this.state;
 
-    //所属分公司
+    //司机管理-所属分公司，全部
     const branchOptions = [];
     //遍历前要检查是否存在，不然会报错： Cannot read property 'forEach' of undefined
     if (branchCompany != undefined && branchCompany.length > 0) {
       branchCompany.forEach(item => {
         branchOptions.push(
+          <Option
+            key={item.companyBranchId}
+            // value={`${item.companyBranchId},${item.companyBranchName}`}
+            value={item.companyBranchId}
+          >
+            {item.companyBranchName}
+          </Option>
+        );
+      });
+    }
+    //司机管理-所属分公司
+    const branchOptions2 = [];
+    //遍历前要检查是否存在，不然会报错： Cannot read property 'forEach' of undefined
+    if (branchCompany2 != undefined && branchCompany2.length > 0) {
+      branchCompany2.forEach(item => {
+        branchOptions2.push(
           <Option
             key={item.companyBranchId}
             // value={`${item.companyBranchId},${item.companyBranchName}`}
@@ -685,12 +911,14 @@ export default class Driver extends PureComponent {
       showQuickJumper: true,
       showSizeChanger: true,
       total: count,
+      current: this.state.current,
       showTotal: () => `共计 ${count} 条`,
     };
 
     const propsUpload = {
       action: '//test.api-bms.51zhaoyou.com/bms/driver/importDriverInfo',
       // action: '//jsonplaceholder.typicode.com/posts/',
+      accept: '.xlsx',
       onRemove: file => {
         this.setState(({ fileList }) => {
           const index = fileList.indexOf(file);
@@ -713,7 +941,7 @@ export default class Driver extends PureComponent {
     const parentMethods = {
       handleAdd: this.handleAdd,
       closeModalVisible: this.closeModalVisible,
-      branchOptions,
+      branchOptions2,
       ValidationOptions,
       driverData,
       isChange: this.state.isChange,
@@ -723,7 +951,7 @@ export default class Driver extends PureComponent {
       handleAdd2: this.handleAdd2,
       setImportmodal: this.setImportmodal,
       setDownload: this.setDownload,
-      branchOptions,
+      branchOptions2,
       propsUpload,
       // fileList: this.state.fileList,
     };
@@ -759,10 +987,10 @@ export default class Driver extends PureComponent {
             <Button type="primary" onClick={() => this.setModalVisible(true, record)}>
               编辑
             </Button>
-            <Divider type="vertical" />
+            {/* <Divider type="vertical" />
             <Popconfirm title="确定要删除司机吗?" onConfirm={() => this.handleDelete(record)}>
               <Button type="danger">删除</Button>
-            </Popconfirm>
+            </Popconfirm> */}
           </Fragment>
         ),
       },
@@ -789,7 +1017,7 @@ export default class Driver extends PureComponent {
                   <Col md={12} sm={24}>
                     <FormItem label="所属分公司">
                       {getFieldDecorator('companyId', {
-                        // initialValue: '全部',
+                        initialValue: -1,
                         // initialText: '全部',
                       })(
                         <Select
@@ -805,7 +1033,9 @@ export default class Driver extends PureComponent {
                   </Col>
                   <Col md={12} sm={24}>
                     <FormItem label="是否有效">
-                      {getFieldDecorator('status', {})(
+                      {getFieldDecorator('status', {
+                        initialValue: "0",
+                      })(
                         <Select
                           placeholder="请选择"
                           showSearch={true}

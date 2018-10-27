@@ -1,6 +1,20 @@
 import React, { PureComponent, Fragment } from 'react';
 import { connect } from 'dva';
-import { Row, Col, Card, Form, Input, Select, Button, Modal, Badge, DatePicker, Table, Icon, message } from 'antd';
+import {
+  Row,
+  Col,
+  Card,
+  Form,
+  Input,
+  Select,
+  Button,
+  Modal,
+  Badge,
+  DatePicker,
+  Table,
+  Icon,
+  message,
+} from 'antd';
 
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
 import styles from './OrderList.less';
@@ -12,7 +26,7 @@ const Option = Select.Option;
 const { RangePicker } = DatePicker;
 const dateFormat = 'YYYY/MM/DD HH:mm:ss';
 // 全部城市
-const provinceData = ['全部','Zhejiang', 'Jiangsu'];
+const provinceData = ['全部', 'Zhejiang', 'Jiangsu'];
 // 全部地区
 const cityData = {
   全部: ['全部'],
@@ -38,7 +52,7 @@ const CreateForm = Form.create()(props => {
       footer={[
         <Button key="关闭" type="primary" onClick={() => setModalVisible()}>
           关闭
-        </Button>
+        </Button>,
       ]}
     >
       <Row className={styles.order}>
@@ -120,32 +134,38 @@ export default class OrderList extends PureComponent {
     this.state = {
       selectedRows: [],
       modalVisible: false,
+      current: 1,
       rangePickerValue: getTimeDistance('month'),
     };
   }
 
   componentDidMount() {
     const { dispatch } = this.props;
+    const { rangePickerValue } = this.state; //startValue,endValue
+    const [startValue, endValue] = rangePickerValue;
+    const startTime = startValue.format('YYYY-MM-DD');
+    const endTime = endValue.format('YYYY-MM-DD');
     //列表
     dispatch({
       type: 'order/searchOrder',
       payload: {
         page: 1,
         count: 10,
+        time: {start: startTime ,  end: endTime},
       },
     });
 
     // 网点
     dispatch({
       type: 'order/skidList',
-      payload: {
-      },
+      payload: {},
     });
 
     // 所属分公司
     dispatch({
       type: 'order/fetchBranchCompany',
       payload: {
+        isNeedAll: 1,
       },
     });
 
@@ -160,8 +180,7 @@ export default class OrderList extends PureComponent {
     // 用油类型
     dispatch({
       type: 'order/fetchGoodsCompany',
-      payload: {
-      },
+      payload: {},
     });
   }
 
@@ -171,7 +190,7 @@ export default class OrderList extends PureComponent {
     });
   };
   //订单详情
-  orderDetails = (row) => {
+  orderDetails = row => {
     const { dispatch } = this.props;
     //列表
     dispatch({
@@ -191,25 +210,10 @@ export default class OrderList extends PureComponent {
     });
   };
   handleStandardTableChange = (pagination, filtersArg, sorter) => {
-    const { dispatch } = this.props;
-    const params = {
-      page: pagination.current,
-      count: pagination.pageSize,
-      isCount: 1,
-    };
-
-    dispatch({
-      type: 'order/searchOrder',
-      payload: params,
-    });
-  };
-// 模糊查询
-  handleSearch = e => {
-    e.preventDefault();
     const { dispatch, form } = this.props;
-    const {rangePickerValue}=this.state;
-    const [startValue,endValue]=rangePickerValue;
-    if(Object.keys(rangePickerValue).length!=0){
+    const { rangePickerValue } = this.state;
+    const [startValue, endValue] = rangePickerValue;
+    if (Object.keys(rangePickerValue).length != 0) {
       const startTime = startValue.format('YYYY-MM-DD HH:mm:ss');
       const endTime = endValue.format('YYYY-MM-DD HH:mm:ss');
       form.validateFields((err, fieldsValue) => {
@@ -223,29 +227,27 @@ export default class OrderList extends PureComponent {
             delete fieldsValue[prop];
           }
         }
-      const params={
-        orderSn: fieldsValue.orderSn,
-        ossId: fieldsValue.ossId,
-        branchId: fieldsValue.branchId,
-        payType: fieldsValue.payType,
-        proSku: fieldsValue.proSku,
-        provinceId: fieldsValue.provinceId,
-        cityId: fieldsValue.cityId,
-        status: fieldsValue.status,
-        likeVal: fieldsValue.likeVal,
-        time:[
-          {start: startTime},
-          {end: endTime}
-        ],
-        page: 1,
-        count: 10,
-      };
+        const params = {
+          orderSn: fieldsValue.orderSn,
+          ossId: fieldsValue.ossId,
+          branchId: fieldsValue.branchId,
+          payType: fieldsValue.payType,
+          proSku: fieldsValue.proSku,
+          provinceId: fieldsValue.provinceId,
+          cityId: fieldsValue.cityId,
+          status: fieldsValue.status,
+          likeVal: fieldsValue.likeVal,
+          time: [{ start: startTime }, { end: endTime }],
+          page: pagination.current,
+          count: pagination.pageSize,
+          isCount: 1,
+        };
 
         const values = {
           ...params,
           transactionType: fieldsValue.transactionType,
           direction: fieldsValue.direction,
-        };        // this.setState({
+        }; // this.setState({
         //   formValues: values,
         //   barTitle:thirdTitle,
         //   rankType:fieldsValue["rankType"]
@@ -253,10 +255,67 @@ export default class OrderList extends PureComponent {
         dispatch({
           type: 'order/searchOrder',
           payload: values,
+        }).then( () => {
+          this.setState({
+            current:pagination.current
+          })
         });
       });
-    }else{
-      message.error("日期不能为空");
+    } else {
+      message.error('日期不能为空');
+    }
+  };
+  // 模糊查询
+  handleSearch = e => {
+    e.preventDefault();
+    const { dispatch, form } = this.props;
+    const { rangePickerValue } = this.state;
+    const [startValue, endValue] = rangePickerValue;
+    if (Object.keys(rangePickerValue).length != 0) {
+      const startTime = startValue.format('YYYY-MM-DD');
+      const endTime = endValue.format('YYYY-MM-DD');
+      form.validateFields((err, fieldsValue) => {
+        if (err) return;
+        for (const prop in fieldsValue) {
+          if (
+            fieldsValue[prop] === '' ||
+            fieldsValue[prop] === '全部' ||
+            fieldsValue[prop] === undefined
+          ) {
+            delete fieldsValue[prop];
+          }
+        }
+        const params = {
+          orderSn: fieldsValue.orderSn,
+          ossId: fieldsValue.ossId,
+          branchId: fieldsValue.branchId,
+          payType: fieldsValue.payType,
+          proSku: fieldsValue.proSku,
+          provinceId: fieldsValue.provinceId,
+          cityId: fieldsValue.cityId,
+          status: fieldsValue.status,
+          likeVal: fieldsValue.likeVal,
+          time: {start: startTime ,  end: endTime},
+          page: 1,
+          count: 10,
+        };
+
+        const values = {
+          ...params,
+          transactionType: fieldsValue.transactionType,
+          direction: fieldsValue.direction,
+        }; 
+        dispatch({
+          type: 'order/searchOrder',
+          payload: values,
+        }).then( () => {
+          this.setState({
+            current:1
+          })
+        });
+      });
+    } else {
+      message.error('日期不能为空');
     }
   };
   //日期框设置值
@@ -279,19 +338,25 @@ export default class OrderList extends PureComponent {
       formValues: {},
       rangePickerValue: getTimeDistance('month'),
     });
-    // const startTime = startValue.format('YYYY-MM-DD');
-    // const endTime = endValue.format('YYYY-MM-DD');
-
+    const [startValue, endValue] = getTimeDistance('month');
+    const startTime = startValue.format('YYYY-MM-DD');
+    const endTime = endValue.format('YYYY-MM-DD');
+    //列表
     dispatch({
       type: 'order/searchOrder',
       payload: {
         page: 1,
         count: 10,
+        time: {start: startTime ,  end: endTime},
       },
+    }).then( () => {
+      this.setState({
+        current:1
+      })
     });
   };
 
-    //导出
+  //导出
   handleExport = () => {
     const { dispatch, form } = this.props;
     const { getFieldValue } = form;
@@ -311,30 +376,27 @@ export default class OrderList extends PureComponent {
             delete fieldsValue[prop];
           }
         }
-      const params={
-        orderSn: fieldsValue.orderSn,
-        ossId: fieldsValue.ossId,
-        branchId: fieldsValue.branchId,
-        payType: fieldsValue.payType,
-        proSku: fieldsValue.proSku,
-        provinceId: fieldsValue.provinceId,
-        cityId: fieldsValue.cityId,
-        status: fieldsValue.status,
-        likeVal: fieldsValue.likeVal,
-        time:[
-          {start: startTime},
-          {end: endTime}
-        ],
-        page: 1,
-        count: 10,
-        actionType: 1,
-      };
+        const params = {
+          orderSn: fieldsValue.orderSn,
+          ossId: fieldsValue.ossId,
+          branchId: fieldsValue.branchId,
+          payType: fieldsValue.payType,
+          proSku: fieldsValue.proSku,
+          provinceId: fieldsValue.provinceId,
+          cityId: fieldsValue.cityId,
+          status: fieldsValue.status,
+          likeVal: fieldsValue.likeVal,
+          time: [{ start: startTime }, { end: endTime }],
+          page: 1,
+          count: 10,
+          actionType: 1,
+        };
 
         const values = {
           ...params,
           transactionType: fieldsValue.transactionType,
           direction: fieldsValue.direction,
-        }; 
+        };
         dispatch({
           type: 'order/searchOrderExport',
           payload: values,
@@ -350,23 +412,23 @@ export default class OrderList extends PureComponent {
               message.warning(exportList.msg);
           }
         });
-      })
+      });
     } else {
       message.error('日期不能为空');
     }
-  }
-  
+  };
+
   //城市联动
-  handleProvinceChange = (value) => {
+  handleProvinceChange = value => {
     const { dispatch } = this.props;
     dispatch({
       type: 'order/regionList2',
       payload: {
         level: 2,
-        parentId: Number(value) ,
+        parentId: Number(value),
       },
     });
-  }
+  };
   // 地区
   // onSecondCityChange = (value) => {
   //   this.setState({
@@ -374,36 +436,40 @@ export default class OrderList extends PureComponent {
   //   });
   // }
   // 订单状态
-  getOrderDetails = (value) => {
-    if(value === "待支付"  
-    || value === "支付中" 
-    || value === "支付失败") {
-      return "待付款"
-    } else if (value === "退款申请提交" 
-    || value === "退款审核通过" 
-    || value === "退款中" 
-    || value === "退款审核失败" 
-    || value === "退款失败") {
-      return "退款中"
-    } else if (value === "成功订单") {
-      return "已付款"
-    } else if (value === "退款成功") {
-      return "已退款"
+  getOrderDetails = value => {
+    if (value === '待支付' || value === '支付中' || value === '支付失败') {
+      return '待付款';
+    } else if (
+      value === '退款申请提交' ||
+      value === '退款审核通过' ||
+      value === '退款中' ||
+      value === '退款审核失败' ||
+      value === '退款失败'
+    ) {
+      return '退款中';
+    } else if (value === '成功订单') {
+      return '已付款';
+    } else if (value === '退款成功') {
+      return '已退款';
     } else {
-      return "已取消"
+      return '已取消';
     }
   };
 
   render() {
     const { order, loading, form } = this.props;
     const { getFieldDecorator } = form;
-    const { orderList, skidList, branchCompany, GoodsCompany, regionCompany, cityCompany, orderDetails } = order;
-
+    const {
+      orderList,
+      skidList,
+      branchCompany,
+      GoodsCompany,
+      regionCompany,
+      cityCompany,
+      orderDetails,
+    } = order;
     const { total, list: tableData } = orderList;
-
-    const { selectedRows, modalVisible } = this.state;
-
-
+    const { rangePickerValue, modalVisible } = this.state;
     const orderStatus = this.getOrderDetails(orderDetails.orderStatus);
     //网点
     const SkidOptions = [];
@@ -468,14 +534,15 @@ export default class OrderList extends PureComponent {
       });
     }
 
-
     //分页属性设置
     const paginationProps = {
       showQuickJumper: true,
       showSizeChanger: true,
       total: total,
+      current: this.state.current,
       showTotal: () => `共计 ${total} 条`,
     };
+
     const parentMethods = {
       setModalVisible: this.setModalVisible,
       SkidOptions,
@@ -486,6 +553,7 @@ export default class OrderList extends PureComponent {
       orderDetails,
       orderStatus,
     };
+
     const rowSelection = {
       onChange: (selectedRowKeys, selectedRows) => {
         console.log(`selectedRowKeys: ${selectedRowKeys}`, 'selectedRows: ', selectedRows);
@@ -547,7 +615,7 @@ export default class OrderList extends PureComponent {
         title: '操作',
         fixed: 'right',
         width: 150,
-        render: (record) => (
+        render: record => (
           <Fragment>
             <Button type="primary" onClick={() => this.orderDetails(record.orderSn)}>
               查看详情
@@ -557,7 +625,7 @@ export default class OrderList extends PureComponent {
       },
     ];
     return (
-    <PageHeaderLayout>
+      <PageHeaderLayout>
         <div className={styles.tableList}>
           <Card bordered={false}>
             <div className={styles.tableListForm}>
@@ -565,16 +633,19 @@ export default class OrderList extends PureComponent {
                 <Row gutter={{ md: 8, lg: 24, xl: 48 }}>
                   <Col md={8} sm={24}>
                     <FormItem label="加油网点">
-                      {getFieldDecorator('ossId')(<Select
-                        showSearch
-                        allowClear
-                        placeholder="加油网点"
-                        optionFilterProp="children"
-                        filterOption={(input, option) => option.props.children.toLowerCase().indexOf(input.toLowerCase()) >= 0}
-                      >
-                        {SkidOptions}
-                      </Select>)
-                      }
+                      {getFieldDecorator('ossId')(
+                        <Select
+                          showSearch
+                          allowClear
+                          placeholder="加油网点"
+                          optionFilterProp="children"
+                          filterOption={(input, option) =>
+                            option.props.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                          }
+                        >
+                          {SkidOptions}
+                        </Select>
+                      )}
                     </FormItem>
                   </Col>
                   <Col md={8} sm={24}>
@@ -585,27 +656,27 @@ export default class OrderList extends PureComponent {
                           allowClear
                           placeholder="分公司名称"
                           optionFilterProp="children"
-                          filterOption={(input, option) => option.props.children.toLowerCase().indexOf(input.toLowerCase()) >= 0}
+                          filterOption={(input, option) =>
+                            option.props.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                          }
                         >
                           {branchOptions}
-                        </Select>)
-                      }
+                        </Select>
+                      )}
                     </FormItem>
                   </Col>
                   <Col md={8} sm={24}>
                     <FormItem label="支付类型">
                       {getFieldDecorator('payType')(
-                        <Select
-                          allowClear
-                          placeholder="支付类型">
+                        <Select allowClear placeholder="支付类型">
                           <Option value="0">全部</Option>
                           <Option value="1">余额</Option>
                           <Option value="21">授信</Option>
                           <Option value="31">微信</Option>
                           <Option value="32">支付宝</Option>
                           <Option value="33">银行卡</Option>
-                        </Select>)
-                      }
+                        </Select>
+                      )}
                     </FormItem>
                   </Col>
                 </Row>
@@ -613,12 +684,10 @@ export default class OrderList extends PureComponent {
                   <Col md={8} sm={24}>
                     <FormItem label="用油类型">
                       {getFieldDecorator('proSku')(
-                        <Select
-                          allowClear
-                          placeholder="用油类型" style={{ width: '100%' }}>
+                        <Select allowClear placeholder="用油类型" style={{ width: '100%' }}>
                           {goodOptions}
-                        </Select>)
-                      }
+                        </Select>
+                      )}
                     </FormItem>
                   </Col>
                   <Col md={8} sm={24}>
@@ -628,10 +697,11 @@ export default class OrderList extends PureComponent {
                           allowClear
                           placeholder="城市"
                           style={{ width: '100%' }}
-                          onChange={this.handleProvinceChange}>
+                          onChange={this.handleProvinceChange}
+                        >
                           {regionOptions}
-                        </Select>)
-                      }
+                        </Select>
+                      )}
                     </FormItem>
                   </Col>
                   <Col md={8} sm={24}>
@@ -641,10 +711,11 @@ export default class OrderList extends PureComponent {
                           allowClear
                           placeholder="地区"
                           style={{ width: '100%' }}
-                          onChange={this.onSecondCityChange}>
+                          onChange={this.onSecondCityChange}
+                        >
                           {cityOptions}
-                        </Select>)
-                      }
+                        </Select>
+                      )}
                     </FormItem>
                   </Col>
                 </Row>
@@ -652,50 +723,54 @@ export default class OrderList extends PureComponent {
                   <Col md={8} sm={24}>
                     <FormItem label="状态">
                       {getFieldDecorator('status')(
-                        <Select
-                          allowClear
-                          placeholder="请选择状态"
-                          style={{ width: '100%' }}>
+                        <Select allowClear placeholder="请选择状态" style={{ width: '100%' }}>
                           <Option value="">全部</Option>
                           <Option value="1">待付款</Option>
                           <Option value="3">已付款</Option>
                           <Option value="5">退款中</Option>
                           <Option value="8">已退款</Option>
                           <Option value="0">已取消</Option>
-                        </Select>)
-                      }
+                        </Select>
+                      )}
                     </FormItem>
                   </Col>
                   <Col md={8} sm={24}>
                     <FormItem label="时间">
-                      {getFieldDecorator('time')(
-                        <RangePicker 
+                      <RangePicker
                         allowClear
                         showTime
+                        value={rangePickerValue}
                         disabledDate={this.disabledDate}
                         onChange={this.handleRangePickerChange}
-                        style={{ width: '100%' }} />
-                      )
-                      }
+                        style={{ width: '100%' }}
+                      />
                     </FormItem>
                   </Col>
                   <Col md={8} sm={24}>
-                    <FormItem label="关键词">{getFieldDecorator('likeVal')(<Input placeholder="请输入订单编号/手机号/车牌号" />)}</FormItem>
+                    <FormItem label="关键词">
+                      {getFieldDecorator('likeVal')(
+                        <Input placeholder="请输入订单编号/手机号/车牌号" />
+                      )}
+                    </FormItem>
                   </Col>
                 </Row>
                 <div style={{ overflow: 'hidden' }}>
-          <span style={{ float: 'right', marginBottom: 24 }}>
-            <Button type="primary" htmlType="submit">
-            <Icon type="search" />查询
-            </Button>
-            <Button style={{ marginLeft: 8 }} onClick={this.handleFormReset}>重置</Button>
-            <Button style={{ marginLeft: 8 }} type="primary" onClick={this.handleExport}><Icon type="export" />导出</Button>
-          </span>
+                  <span style={{ float: 'right', marginBottom: 24 }}>
+                    <Button type="primary" htmlType="submit">
+                      <Icon type="search" />查询
+                    </Button>
+                    <Button style={{ marginLeft: 8 }} onClick={this.handleFormReset}>
+                      重置
+                    </Button>
+                    <Button style={{ marginLeft: 8 }} type="primary" onClick={this.handleExport}>
+                      <Icon type="export" />导出
+                    </Button>
+                  </span>
                 </div>
               </Form>
             </div>
           </Card>
-          <Row style={{marginTop:20}}>
+          <Row style={{ marginTop: 20 }}>
             <Card>
               <div>
                 <Table

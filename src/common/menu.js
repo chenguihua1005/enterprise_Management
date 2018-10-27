@@ -2,30 +2,53 @@ import { isUrl } from '../utils/utils';
 
 const menuData = [
   {
-
     name:'数据总览',
     icon:'home',
     path:'dashboard',
+    amUrl:"/dashboard",
+    // authority:"noAuthority"
   },
   {
     name:'基础信息管理',
     icon:'idcard',
     path:'basicinfo',
+    amUrl:"/basicinfo",
     children:[
       {
-        icon:'area-chart',
+        icon:'desktop',
         name:'分公司管理',
         path:'subsidiary',
+        // authority: "noAuthority",
+        amUrl:"/basicinfo/subsidiary"
       },
       {
-        icon:'bar-chart',
+        icon:'team',
         name:'司机管理',
         path:'driver',
+        // authority: "noAuthority",
+        amUrl:"/basicinfo/driver"
       },
       {
-        icon:'solution',
+        icon:'lock',
         name:'账号管理',
-        path:'account',
+        path:'accountadmin',
+        amUrl:"/basicinfo/accountadmin",
+        children:[
+          {
+            icon:'user',
+            name:'角色管理',
+            // authority: "noAuthority",
+            path:'role',
+            amUrl:"/basicinfo/accountadmin/role"
+          },
+          {
+            icon:'idcard',
+            name:'用户管理',
+            // authority: "noAuthority",
+            path:'account',
+            amUrl:"/basicinfo/accountadmin/account"
+          }
+        ]
       },
     ]
   },
@@ -33,11 +56,14 @@ const menuData = [
     name:'订单管理',
     icon:'shop',
     path:'order',
+    amUrl:"/order",
     children:[
       {
         icon:'exception',
         name:'加油订单列表',
         path:'orderlist',
+        // authority: "noAuthority",
+        amUrl:"/order/orderlist"
       }
     ]
   },
@@ -45,26 +71,34 @@ const menuData = [
     name:'油费管理',
     icon:'barcode',
     path:'oilfee',
+    amUrl:"/oilfee",
     children:[
       {
         name:'账户管理',
         icon:'aliwangwang-o',
-        path:'account',
+        path:'oilaccount',
+        amUrl:"/oilfee/oilaccount",
         children:[
           {
             icon:'area-chart',
             name:'总账户',
             path:'general',
+            // authority: "noAuthority",
+            amUrl:"/oilfee/oilaccount/general"
           },
           {
             icon:'bar-chart',
             name:'分公司账户',
             path:'branch',
+            // authority: "noAuthority",
+            amUrl:"/oilfee/oilaccount/branch"
           },
           {
             icon:'setting',
             name:'司机账户',
-            path:'driver',
+            path:'driveraccout',
+            // authority: "noAuthority",
+            amUrl:"/oilfee/oilaccount/driveraccout"
           }
         ]
       },
@@ -72,6 +106,8 @@ const menuData = [
         name:'油费发放',
         icon:'shop',
         path:'provide',
+        // authority: "noAuthority",
+        amUrl:"/oilfee/provide"
       },
       // {
       //   name:'联名卡管理',
@@ -96,21 +132,25 @@ const menuData = [
     name:'结算管理',
     icon:'wallet',
     path:'settlement',
+    amUrl:"/settlement",
     children:[
       {
         name:'对账单',
         icon:'aliwangwang-o',
         path:'statement',
+        amUrl:"/settlement/statement",
         children:[
           {
             icon:'area-chart',
             name:'预存账单',
             path:'prestore',
+            amUrl:"/settlement/statement/prestore",
           },
           {
             icon:'bar-chart',
             name:'授信账单',
             path:'credit',
+            amUrl:"/settlement/statement/credit",
           },
           // {
           //   icon:'setting',
@@ -138,164 +178,48 @@ const menuData = [
   //     },
   //   ]
   // },
-  // {
-  //   name: 'dashboard',
-  //   icon: 'dashboard',
-  //   path: 'dashboard',
-  //   children: [
-  //     {
-  //       name: '分析页',
-  //       path: 'analysis',
-  //     },
-  //     {
-  //       name: '监控页',
-  //       path: 'monitor',
-  //     },
-  //     {
-  //       name: '工作台',
-  //       path: 'workplace',
-  //       // hideInBreadcrumb: true,
-  //       // hideInMenu: true,
-  //     },
-  //     {
-  //       name: '测试页',
-  //       path: 'test',
-  //     },
-  //   ],
-  // },
-  // {
-  //   name: '表单页',
-  //   icon: 'form',
-  //   path: 'form',
-  //   children: [
-  //     {
-  //       name: '基础表单',
-  //       path: 'basic-form',
-  //     },
-  //     {
-  //       name: '分步表单',
-  //       path: 'step-form',
-  //     },
-  //     {
-  //       name: '高级表单',
-  //       authority: 'admin',
-  //       path: 'advanced-form',
-  //     },
-  //   ],
-  // },
-  // {
-  //   name: '列表页',
-  //   icon: 'table',
-  //   path: 'list',
-  //   children: [
-  //     {
-  //       name: '查询表格',
-  //       path: 'table-list',
-  //     },
-  //     {
-  //       name: '标准列表',
-  //       path: 'basic-list',
-  //     },
-  //     {
-  //       name: '卡片列表',
-  //       path: 'card-list',
-  //     },
-  //     {
-  //       name: '搜索列表',
-  //       path: 'search',
-  //       children: [
-  //         {
-  //           name: '搜索列表（文章）',
-  //           path: 'articles',
-  //         },
-  //         {
-  //           name: '搜索列表（项目）',
-  //           path: 'projects',
-  //         },
-  //         {
-  //           name: '搜索列表（应用）',
-  //           path: 'applications',
-  //         },
-  //       ],
-  //     },
-  //   ],
-  // },
-  // {
-  //   name: '详情页',
-  //   icon: 'profile',
-  //   path: 'profile',
-  //   children: [
-  //     {
-  //       name: '基础详情页',
-  //       path: 'basic',
-  //     },
-  //     {
-  //       name: '高级详情页',
-  //       path: 'advanced',
-  //       authority: 'admin',
-  //     },
-  //   ],
-  // },
-  // {
-  //   name: '结果页',
-  //   icon: 'check-circle-o',
-  //   path: 'result',
-  //   children: [
-  //     {
-  //       name: '成功',
-  //       path: 'success',
-  //     },
-  //     {
-  //       name: '失败',
-  //       path: 'fail',
-  //     },
-  //   ],
-  // },
-  // {
-  //   name: '异常页',
-  //   icon: 'warning',
-  //   path: 'exception',
-  //   children: [
-  //     {
-  //       name: '403',
-  //       path: '403',
-  //     },
-  //     {
-  //       name: '404',
-  //       path: '404',
-  //     },
-  //     {
-  //       name: '500',
-  //       path: '500',
-  //     },
-  //     {
-  //       name: '触发异常',
-  //       path: 'trigger',
-  //       hideInMenu: true,
-  //     },
-  //   ],
-  // },
-  // {
-  //   name: '账户',
-  //   icon: 'user',
-  //   path: 'user',
-  //   authority: 'guest',
-  //   children: [
-  //     {
-  //       name: '登录',
-  //       path: 'login',
-  //     },
-  //     {
-  //       name: '注册',
-  //       path: 'register',
-  //     },
-  //     {
-  //       name: '注册结果',
-  //       path: 'register-result',
-  //     },
-  //   ],
-  // },
 ];
+
+function clearAuthority(data){
+  return data.map(item => {
+    if (item.hasOwnProperty("authority")) {
+      delete item["authority"];
+    }
+    const result = {
+      ...item,
+    };
+    if (item.children) {
+      result.children =clearAuthority(item.children);
+    }
+    return result;
+  });
+}
+
+function formatterMenuData(MenuData) {
+  // const msg=window.localStorage.getItem('currentAuthority');
+  const clearMenuData=clearAuthority(MenuData);
+  console.log('clear', clearMenuData);
+  const arr = JSON.parse(window.localStorage.getItem('loginRole'));
+  console.log('arr', arr);
+  if (Array.isArray(arr) && arr.length > 0) {
+    arr.forEach((item) => {
+      renderMenuItem(clearMenuData, item.amUrl);
+    })
+  }
+  return clearMenuData;
+}
+//递归菜单树形结构
+function renderMenuItem(data, key) {
+  for(var i in data) {
+    if(data[i]["amUrl"]==key) {
+      // 如果url相等 就设置 没有权限
+      data[i]["authority"] = 'noAuthority';
+      break;
+    } else {
+      renderMenuItem(data[i].children, key);
+    }
+  }
+}
 
 function formatter(data, parentPath = '/', parentAuthority) {
   return data.map(item => {
@@ -314,5 +238,7 @@ function formatter(data, parentPath = '/', parentAuthority) {
     return result;
   });
 }
-
-export const getMenuData = () => formatter(menuData);
+// console.log('MenuData',formatterMenuData(menuData));  //给没有权限的节点设置权限
+//根节点的权限不能动，没有权限的模块设置一下就可以了
+console.log('MenuData11',menuData);
+export const getMenuData = () => formatter(formatterMenuData(menuData));

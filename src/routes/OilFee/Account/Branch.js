@@ -25,6 +25,7 @@ export default class AccountBranchComponent extends PureComponent {
     this.newTabIndex = 2;
     const panes = [{ title: '分公司账户', content: '', key: '1' }];
     this.state = {
+      current: 1,
       formValues: {},
       activeKey: panes[0].key,
       panes,
@@ -40,14 +41,14 @@ export default class AccountBranchComponent extends PureComponent {
       recycleModalVisible: status,
       recycleInfo: info,
     });
-    console.log(this.state);
+    // console.log(this.state);
     //可回收余额
     this.props.dispatch({
       type: 'oilfee/fetchProvideRecycle',
       payload: {
         member_id: 26,
         grantType: 1,
-        data: info.companyBranchId
+        data: info.companyBranchId,
       },
     });
   };
@@ -90,7 +91,6 @@ export default class AccountBranchComponent extends PureComponent {
       mobilePhone: '',
       branchName: '',
     };
-
     // 表单校验
     form.validateFields((err, fieldsValue) => {
       if (err) return;
@@ -103,22 +103,63 @@ export default class AccountBranchComponent extends PureComponent {
           delete fieldsValue[prop];
         }
       }
-
       const values = {
         ...params,
         branchName: fieldsValue.branchName,
       };
-
       dispatch({
         type: 'oilfee/fetch2',
         payload: values,
+      }).then(() => {
+        this.setState({
+          current: 1
+        })
       });
     });
   };
+
+  //列表变化翻页的回调
+  handleStandardTableChange = (pagination, filtersArg, sorter) => {
+    const { dispatch, form } = this.props;
+    const params = {
+      //默认值
+      member_id: 26,
+      page: pagination.current,
+      pageSize: pagination.pageSize,
+      isCount: 1,
+      mobilePhone: '',
+      branchName: '',
+    };
+    // 表单校验
+    form.validateFields((err, fieldsValue) => {
+      if (err) return;
+      for (const prop in fieldsValue) {
+        if (
+          fieldsValue[prop] === '' ||
+          fieldsValue[prop] === '全部' ||
+          fieldsValue[prop] === undefined
+        ) {
+          delete fieldsValue[prop];
+        }
+      }
+      const values = {
+        ...params,
+        branchName: fieldsValue.branchName,
+      };
+      dispatch({
+        type: 'oilfee/fetch2',
+        payload: values,
+      }).then(() => {
+        this.setState({
+          current: pagination.current
+        })
+      });
+    });
+  };
+
   // 搜索区表单
   renderAdvancedForm() {
     const { getFieldDecorator } = this.props.form;
-
     return (
       <Form onSubmit={this.handleSearch} layout="inline">
         <Row gutter={{ md: 24, lg: 24, xl: 48 }}>
@@ -136,21 +177,6 @@ export default class AccountBranchComponent extends PureComponent {
     );
   }
 
-  handleStandardTableChange = (pagination, filtersArg, sorter) => {
-    const { dispatch } = this.props;
-    const params = {
-      member_id: 26,
-      page: pagination.current,
-      pageSize: pagination.pageSize,
-      isCount: 1,
-    };
-
-    dispatch({
-      type: 'oilfee/fetch2',
-      payload: params,
-    });
-  };
-
   renderForm() {
     return this.renderAdvancedForm();
   }
@@ -164,7 +190,12 @@ export default class AccountBranchComponent extends PureComponent {
     }
     panes.push({
       title: '公司账户明细-预存账户',
-      content: <AccountBranchDetailComponent companyId={record.companyBranchId} companyBranchName={record.companyBranchName}/>,
+      content: (
+        <AccountBranchDetailComponent
+          companyId={record.companyBranchId}
+          companyBranchName={record.companyBranchName}
+        />
+      ),
       key: activeKey,
     });
     this.setState({ panes, activeKey });
@@ -202,6 +233,7 @@ export default class AccountBranchComponent extends PureComponent {
     const paginationProps = {
       showQuickJumper: true,
       showSizeChanger: true,
+      current: this.state.current,
       total: count,
       showTotal: () => `共计 ${count} 条`,
     };

@@ -2,14 +2,22 @@ import { stringify } from 'qs';
 import request from '../utils/request';
 // const baseUrl=""
 //测试环境
-const baseUrl="http://test.api-bms.51zhaoyou.com/bms/";
+export const baseUrl="http://test.api-bms.51zhaoyou.com/bms/";
 //生产环境
-// const baseUrl = 'https://api-bms.51zhaoyou.com/bms/';
+// export const baseUrl = 'https://api-bms.51zhaoyou.com/bms/';
+
 
 //------------0公共接口---------------
 //登录，请求token
 export async function queryAccountLogin(params) {
   return request(baseUrl + 'login/getAccessToken', {
+    method: 'POST',
+    body: params,
+  });
+}
+// 获取验证码
+export async function queryGetVerifyImg(params) {
+  return request(baseUrl + 'login/getVerifyImg/', {
     method: 'POST',
     body: params,
   });
@@ -92,13 +100,13 @@ export async function queryBasicinfo1(params) {
 }
 //分公司查询页面搜索项(上级分公司下拉列表选项)默认值及新增分公司下拉选项初始化值
 export async function queryBasicinfo1Branch(params) {
-  return request(baseUrl + 'Common/getBrachListAddSelect', {
+  return request(baseUrl + 'Common/GetBrachListSelect', {
     method: 'POST',
     body: params,
   });
 }
 //编辑分公司页面所属分公司下拉列表选项初始化值
-export async function querySubsidiaryOptions(params) {
+export async function queryBasicinfo1BranchEdit(params) {
   return request(baseUrl + 'Common/getAffiliatedCompany', {
     method: 'POST',
     body: params,
@@ -155,9 +163,82 @@ export async function querySubsidiaryImportDriverInfo(params) {
     body: params,
   });
 }
+//获取异步上传文件已处理未读个数
+export async function queryDingNotice(params) {
+  return request(baseUrl + 'oilAccount/DingNotice', {
+    method: 'POST',
+    body: params,
+  });
+}
+//异步文件未读消息列表
+export async function queryNoticeList(params) {
+  return request(baseUrl + 'oilAccount/noticeList', {
+    method: 'POST',
+    body: params,
+  });
+}
 
 
 //------------2.3账号管理-----------
+//角色查询列表
+export async function queryAppRoleInfo(params) {
+  return request(baseUrl + 'Application/getAppRoleList', {
+    method: 'POST',
+    body: params,
+  });
+}
+//角色查询列表
+export async function queryAppRoleOne(params) {
+  return request(baseUrl + 'Application/getAppRoleOne', {
+    method: 'POST',
+    body: params,
+  });
+}
+//角色编辑
+export async function queryAppRoleSaveOne(params) {
+  return request(baseUrl + 'Application/roleSaveOne', {
+    method: 'POST',
+    body: params,
+  });
+}
+//角色权限菜单获取
+export async function queryAppGetMenuRole(params) {
+  return request(baseUrl + 'Application/getMenuRole', {
+    method: 'POST',
+    body: params,
+  });
+}
+//新增角色
+export async function querySetRoleAdd(params) {
+  return request(baseUrl + 'Application/roleAddOne', {
+    method: 'POST',
+    body: params,
+  });
+}
+
+//设置角色
+export async function querySetRoleAuth(params) {
+  return request(baseUrl + 'Application/setRoleAuth', {
+    method: 'POST',
+    body: params,
+  });
+}
+
+//角色权限下拉菜单 包含选中的
+export async function queryUsersRole(params) {
+  return request(baseUrl + 'Application/getUsersRoleSelect', {
+    method: 'POST',
+    body: params,
+  });
+}
+
+//角色权限下拉菜单 包含选中的
+export async function queryDelRole(params) {
+  return request(baseUrl + 'Application/roleDeleteOne', {
+    method: 'POST',
+    body: params,
+  });
+}
 
 //------------3订单管理---------------
 //获取订单列表

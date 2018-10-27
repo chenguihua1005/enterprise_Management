@@ -25,7 +25,7 @@ class LoginDemo extends React.Component {
       this.setState({
         notice: '',
       }, () => {
-        if (!err && (values.username !== 'admin' || values.password !== '888888')) {
+        if (!err) {// && (values.username !== 'admin' || values.password !== '888888')
           setTimeout(() => {
             this.setState({
               notice: 'The combination of username and password is incorrect!',

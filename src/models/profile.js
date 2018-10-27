@@ -11,20 +11,20 @@ export default {
   },
 
   effects: {
-    *fetchBasic(_, { call, put }) {
-      const response = yield call(queryBasicProfile);
-      yield put({
-        type: 'show',
-        payload: response,
-      });
-    },
-    *fetchAdvanced(_, { call, put }) {
-      const response = yield call(queryAdvancedProfile);
-      yield put({
-        type: 'show',
-        payload: response,
-      });
-    },
+    // *fetchBasic(_, { call, put }) {
+    //   // const response = yield call(queryBasicProfile);
+    //   // yield put({
+    //   //   type: 'show',
+    //   //   payload: response,
+    //   // });
+    // },
+    // *fetchAdvanced(_, { call, put }) {
+    //   const response = yield call(queryAdvancedProfile);
+    //   yield put({
+    //     type: 'show',
+    //     payload: response,
+    //   });
+    // },
   },
 
   reducers: {

@@ -1,5 +1,5 @@
 import fetch from 'dva/fetch';
-import { notification, message } from 'antd';
+import { notification } from 'antd';
 import { routerRedux } from 'dva/router';
 import store from '../index';
 
@@ -88,18 +88,15 @@ export default function request(url, options) {
       const status = e.name;
       if (status === 401 || status === 403) {
         //401 403统一做退出登录
+        window.localStorage.removeItem('accessToken');
         dispatch({
-          type: 'login/logout',
+          type: 'login/logout2',
         });
-        message.warning('您的登录失效了，需要重新登录');
-        return;
-      }
-      if (status <= 504 && status >= 500) {
+      } else if (status <= 504 && status >= 500) {
         dispatch(routerRedux.push('/exception/500'));
-        return;
-      }
-      if (status >= 404 && status < 422) {
+      } else if (status >= 404 && status < 422) {
         dispatch(routerRedux.push('/exception/404'));
       }
+      return;
     });
 }

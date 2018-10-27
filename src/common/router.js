@@ -26,29 +26,41 @@ const dynamicWrapper = (app, models, component) => {
   // transformed by babel-plugin-dynamic-import-node-sync
   if (component.toString().indexOf('.then(') < 0) {
     return props => {
-      if (!routerDataCache) {
-        routerDataCache = getRouterData(app);
-      }
       return createElement(component().default, {
         ...props,
-        routerData: routerDataCache,
+        routerData: getRouterData(app),
       });
+      // if (!routerDataCache) {
+      //   routerDataCache = getRouterData(app);
+      // }
+      // return createElement(component().default, {
+      //   ...props,
+      //   routerData: routerDataCache,
+      // });
     };
   }
   // () => import('module')
   return Loadable({
     loader: () => {
-      if (!routerDataCache) {
-        routerDataCache = getRouterData(app);
-      }
       return component().then(raw => {
         const Component = raw.default || raw;
         return props =>
           createElement(Component, {
             ...props,
-            routerData: routerDataCache,
+            routerData: getRouterData(app),
           });
       });
+      // if (!routerDataCache) {
+      //   routerDataCache = getRouterData(app);
+      // }
+      // return component().then(raw => {
+      //   const Component = raw.default || raw;
+      //   return props =>
+      //     createElement(Component, {
+      //       ...props,
+      //       routerData: routerDataCache,
+      //     });
+      // });
     },
     loading: () => {
       return <Spin size="large" className="global-spin" />;
@@ -87,23 +99,49 @@ export const getRouterData = app => {
       //司机管理
       component: dynamicWrapper(app, ['basicinfo'], () => import('../routes/Basicinfo/Driver')),
     },
-    //账号管理
-    '/basicinfo/account': {
+    //角色管理
+    '/basicinfo/accountadmin/role': {
+      component: dynamicWrapper(app, ['basicinfo'], () => import('../routes/Basicinfo/Role')),
+    },
+    //用户管理
+    '/basicinfo/accountadmin/account': {
       component: dynamicWrapper(app, ['basicinfo'], () => import('../routes/Basicinfo/Account')),
     },
+     //加油订单管理
+     '/order/orderList': {
+      component: dynamicWrapper(app, ['order'], () => import('../routes/Order/OrderList')),
+    },
+    // 油费管理-账户管理-总账户
+    '/oilfee/oilaccount/general': {
+      component: dynamicWrapper(app, ['oilfee'], () => import('../routes/OilFee/Account/General')),
+    },
+    // 油费管理-账户管理-分公司账户
+    '/oilfee/oilaccount/branch': {
+      component: dynamicWrapper(app, ['oilfee'], () => import('../routes/OilFee/Account/Branch')),
+    },
+    // 油费管理-账户管理-司机账户
+    '/oilfee/oilaccount/driveraccout': {
+      component: dynamicWrapper(app, ['oilfee'], () => import('../routes/OilFee/Account/Driver')),
+    },
+    // 油费管理-油费发放
+    '/oilfee/provide': {
+      component: dynamicWrapper(app, ['oilfee'], () => import('../routes/OilFee/Provide')),
+    },
+    //对账单-预存账单
     '/settlement/statement/prestore': {
-      //对账单-预存账单
       component: dynamicWrapper(app, ['statement'], () =>
         import('../routes/Settlement/Statement/Prestore')
       ),
     },
+    //对账单-授信账单
     '/settlement/statement/credit': {
-      //对账单-授信账单
       component: dynamicWrapper(app, ['statement'], () =>
         import('../routes/Settlement/Statement/Credit')
       ),
     },
 
+   
+    
     '/dashboard/analysis': {
       component: dynamicWrapper(app, ['chart'], () => import('../routes/Dashboard/Analysis')),
     },
@@ -117,26 +155,6 @@ export const getRouterData = app => {
       // hideInBreadcrumb: true,
       // name: '工作台',
       // authority: 'admin',
-    },
-
-    '/order/orderList': {
-      component: dynamicWrapper(app, ['order'], () => import('../routes/Order/OrderList')),
-    },
-    // 油费管理-账户管理-总账户
-    '/oilfee/account/general': {
-      component: dynamicWrapper(app, ['oilfee'], () => import('../routes/OilFee/Account/General')),
-    },
-    // 油费管理-账户管理-分公司账户
-    '/oilfee/account/branch': {
-      component: dynamicWrapper(app, ['oilfee'], () => import('../routes/OilFee/Account/Branch')),
-    },
-    // 油费管理-账户管理-司机账户
-    '/oilfee/account/driver': {
-      component: dynamicWrapper(app, ['oilfee'], () => import('../routes/OilFee/Account/Driver')),
-    },
-    // 油费管理-油费发放
-    '/oilfee/provide': {
-      component: dynamicWrapper(app, ['oilfee'], () => import('../routes/OilFee/Provide')),
     },
     '/form/basic-form': {
       component: dynamicWrapper(app, ['form'], () => import('../routes/Forms/BasicForm')),
