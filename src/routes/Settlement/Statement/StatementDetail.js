@@ -20,17 +20,19 @@ export default class StatementDetail extends PureComponent {
       modalVisible: false,
       formValues: {},
       current:1,
-      rangePickerValue: getTimeDistance('month'),
+      rangePickerValue: [],
     };
+    this.startTime = '';
+    this.endTime = '';
   }
   
 
   componentDidMount() {
     const { dispatch, billNumber } = this.props;
-    const { rangePickerValue } = this.state; //startValue,endValue
-    const [startValue, endValue] = rangePickerValue;
-    const startTime = startValue.format('YYYY-MM-DD');
-    const endTime = endValue.format('YYYY-MM-DD');
+    // const { rangePickerValue } = this.state; //startValue,endValue
+    // const [startValue, endValue] = rangePickerValue;
+    // const startTime = startValue.format('YYYY-MM-DD');
+    // const endTime = endValue.format('YYYY-MM-DD');
     dispatch({
       type: 'statement/billDetail',
       payload: {
@@ -43,10 +45,12 @@ export default class StatementDetail extends PureComponent {
         dispatch({
           type: 'statement/billOrderList',
           payload: {
+            page: 1,
+            pageSize: 10,
             isCount: 1,
             billId: billDetail.billId,
-            startTime,
-            endTime,
+            // startTime,
+            // endTime,
           },
         });
       }
@@ -56,15 +60,15 @@ export default class StatementDetail extends PureComponent {
   // 重置搜索条件
   handleFormReset = () => {
     const { form, dispatch, billNumber } = this.props;
-    const { rangePickerValue } = this.state; //startValue,endValue
+    // const { rangePickerValue } = this.state; //startValue,endValue
     form.resetFields();
     this.setState({
       formValues: {},
-      rangePickerValue: getTimeDistance('month'),
+      rangePickerValue: [],
     });
-    const [startValue, endValue] = getTimeDistance('month');
-    const startTime = startValue.format('YYYY-MM-DD');
-    const endTime = endValue.format('YYYY-MM-DD');
+    // const [startValue, endValue] = getTimeDistance('month');
+    // const startTime = startValue.format('YYYY-MM-DD');
+    // const endTime = endValue.format('YYYY-MM-DD');
     dispatch({
       type: 'statement/billDetail',
       payload: {
@@ -77,10 +81,12 @@ export default class StatementDetail extends PureComponent {
         dispatch({
           type: 'statement/billOrderList',
           payload: {
+            page: 1,
+            pageSize: 10,
             isCount: 1,
             billId: billDetail.billId,
-            startTime,
-            endTime,
+            startTime: '',
+            endTime: '',
           },
         }).then( () => {
           this.setState({
@@ -92,9 +98,9 @@ export default class StatementDetail extends PureComponent {
   };
 
   //日期框设置值
-  handleRangePickerChange = rangePickerValue => {
+  handleRangePickerChange = (date) => {
     this.setState({
-      rangePickerValue,
+      rangePickerValue: date,
     });
   };
 
@@ -112,50 +118,52 @@ export default class StatementDetail extends PureComponent {
     const { billDetail } = this.props.statement;
     // 表单校验
     const { rangePickerValue } = this.state;
-    const [startValue, endValue] = rangePickerValue;
     if (Object.keys(rangePickerValue).length != 0) {
-      const startTime = startValue.format('YYYY-MM-DD');
-      const endTime = endValue.format('YYYY-MM-DD');
-      form.validateFields((err, fieldsValue) => {
-        if (err) return;
-        for (const prop in fieldsValue) {
-          if (
-            fieldsValue[prop] === '' ||
-            fieldsValue[prop] === '全部' ||
-            fieldsValue[prop] === undefined
-          ) {
-            delete fieldsValue[prop];
-          }
-        }
-        const params = {
-          orderSn: fieldsValue.orderSn,
-          startTime,
-          endTime,
-          minAmount: fieldsValue.minAmount,
-          maxAmount: fieldsValue.maxAmount,
-          billId: billDetail.billId,
-          page: 1,
-          pageSize: 10,
-          isCount: 1,
-        };
-
-        const values = {
-          ...params,
-          transactionType: fieldsValue.transactionType,
-          direction: fieldsValue.direction,
-        };
-        dispatch({
-          type: 'statement/billOrderList',
-          payload: values,
-        }).then( () => {
-          this.setState({
-            current: 1
-          })
-        });
-      });
+      const [startValue, endValue] = rangePickerValue;
+      this.startTime = startValue.format('YYYY-MM-DD');
+      this.endTime = endValue.format('YYYY-MM-DD');
     } else {
-      message.error('日期不能为空');
+      this.startTime = '';
+      this.endTime = '';
     }
+    form.validateFields((err, fieldsValue) => {
+      if (err) return;
+      for (const prop in fieldsValue) {
+        if (
+          fieldsValue[prop] === '' ||
+          fieldsValue[prop] === '全部' ||
+          fieldsValue[prop] === undefined
+        ) {
+          delete fieldsValue[prop];
+        }
+      }
+      const params = {
+        orderSn: fieldsValue.orderSn,
+        startTime: this.startTime,
+        endTime: this.endTime,
+        minAmount: fieldsValue.minAmount,
+        maxAmount: fieldsValue.maxAmount,
+        billId: billDetail.billId,
+        page: 1,
+        pageSize: 10,
+        isCount: 1,
+      };
+
+      const values = {
+        ...params,
+        transactionType: fieldsValue.transactionType,
+        direction: fieldsValue.direction,
+      };
+      dispatch({
+        type: 'statement/billOrderList',
+        payload: values,
+      }).then( () => {
+        this.setState({
+          current: 1
+        })
+      });
+    });
+    
   };
 
   handleStandardTableChange = (pagination, filtersArg, sorter) => {
@@ -163,50 +171,51 @@ export default class StatementDetail extends PureComponent {
     const { billDetail } = this.props.statement;
     // 表单校验
     const { rangePickerValue } = this.state;
-    const [startValue, endValue] = rangePickerValue;
     if (Object.keys(rangePickerValue).length != 0) {
-      const startTime = startValue.format('YYYY-MM-DD');
-      const endTime = endValue.format('YYYY-MM-DD');
-      form.validateFields((err, fieldsValue) => {
-        if (err) return;
-        for (const prop in fieldsValue) {
-          if (
-            fieldsValue[prop] === '' ||
-            fieldsValue[prop] === '全部' ||
-            fieldsValue[prop] === undefined
-          ) {
-            delete fieldsValue[prop];
-          }
-        }
-        const params = {
-          orderSn: fieldsValue.orderSn,
-          startTime,
-          endTime,
-          minAmount: fieldsValue.minAmount,
-          maxAmount: fieldsValue.maxAmount,
-          billId: billDetail.billId,
-          page: pagination.current,
-          pageSize: pagination.pageSize,
-          isCount: 1,
-        };
-
-        const values = {
-          ...params,
-          transactionType: fieldsValue.transactionType,
-          direction: fieldsValue.direction,
-        };
-        dispatch({
-          type: 'statement/billOrderList',
-          payload: values,
-        }).then( () => {
-          this.setState({
-            current:pagination.current
-          })
-        });
-      });
+      const [startValue, endValue] = rangePickerValue;
+      this.startTime = startValue.format('YYYY-MM-DD');
+      this.endTime = endValue.format('YYYY-MM-DD');
     } else {
-      message.error('日期不能为空');
+      this.startTime = '';
+      this.endTime = '';
     }
+    form.validateFields((err, fieldsValue) => {
+      if (err) return;
+      for (const prop in fieldsValue) {
+        if (
+          fieldsValue[prop] === '' ||
+          fieldsValue[prop] === '全部' ||
+          fieldsValue[prop] === undefined
+        ) {
+          delete fieldsValue[prop];
+        }
+      }
+      const params = {
+        orderSn: fieldsValue.orderSn,
+        startTime: this.startTime,
+        endTime: this.endTime,
+        minAmount: fieldsValue.minAmount,
+        maxAmount: fieldsValue.maxAmount,
+        billId: billDetail.billId,
+        page: pagination.current,
+        pageSize: pagination.pageSize,
+        isCount: 1,
+      };
+
+      const values = {
+        ...params,
+        transactionType: fieldsValue.transactionType,
+        direction: fieldsValue.direction,
+      };
+      dispatch({
+        type: 'statement/billOrderList',
+        payload: values,
+      }).then( () => {
+        this.setState({
+          current:pagination.current
+        })
+      });
+    });
   }
 
   // 搜索区表单
@@ -254,14 +263,15 @@ export default class StatementDetail extends PureComponent {
               </Col>
               <Col span={12}>
                 <FormItem label="创建时间">
+                {getFieldDecorator('time')(
                   <RangePicker
-                    showTime
-                    allowClear
-                    value={rangePickerValue}
-                    disabledDate={this.disabledDate}
+                    // showTime
+                    // allowClear
+                    // value={rangePickerValue}
+                    // disabledDate={this.disabledDate}
                     onChange={this.handleRangePickerChange}
                     style={{ width: '100%' }}
-                  />
+                  />)}
                 </FormItem>
               </Col>
             </Row>
@@ -315,7 +325,7 @@ export default class StatementDetail extends PureComponent {
     const paginationProps = {
       showQuickJumper: true,
       showSizeChanger: true,
-      total: count,
+      total: parseInt(count),
       current: this.state.current,
       showTotal: () => `共计 ${count} 条`,
     };

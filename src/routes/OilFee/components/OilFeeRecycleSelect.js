@@ -3,7 +3,7 @@ import { connect } from 'dva';
 import { Form, Input, Modal, Select, message, Row, Col, Cascader } from 'antd';
 const FormItem = Form.Item;
 const Option = Select.Option;
-import { getTimeDistance } from '../../../utils/utils';
+import { getTimeDistance, isNum } from '../../../utils/utils';
 
 @connect(({ oilfee }) => ({
   oilfee,
@@ -26,13 +26,6 @@ export default class OilFeeRecycleSelect extends PureComponent {
     form.resetFields();
   }
 
-  IsNum = s => {
-    let re = /^(\-|\+)?\d+(\.\d+)?$/; //判断字符串是否为数字
-    if (!re.test(s)) {
-      return false;
-    } else return true;
-  };
-
   // 确定后提交操作与关闭弹窗
   okHandle = (callback, grantType, branchOrDriverId, amount) => {
     const { dispatch, form } = this.props;
@@ -42,7 +35,7 @@ export default class OilFeeRecycleSelect extends PureComponent {
     const endTime = endValue.format('YYYY-MM-DD');
     form.validateFields((err, fieldsValue) => {
       if (!err) {
-        if (!this.IsNum(amount)) {
+        if (!isNum(amount)) {
           message.warning('金额必须为数字');
           return;
         } else if (parseFloat(amount) <= 0) {
@@ -68,13 +61,12 @@ export default class OilFeeRecycleSelect extends PureComponent {
         //总账户详情
         dispatch({
           type: 'oilfee/fetch1',
-          payload: { member_id: 26 },
+          payload: {  },
         });
         //回收油费
         dispatch({
           type: 'oilfee/fetchProvideRecover',
           payload: {
-            member_id: 26,
             grantType: grantType == '2' ? 2 : 1,
             driverId: branchOrDriverId,
             branchId: branchOrDriverId,
@@ -91,7 +83,6 @@ export default class OilFeeRecycleSelect extends PureComponent {
               dispatch({
                 type: 'oilfee/fetch4Detail',
                 payload: {
-                  member_id: 26,
                   page: 1,
                   pageSize: 10,
                   isCount: 1,
@@ -144,7 +135,6 @@ export default class OilFeeRecycleSelect extends PureComponent {
       dispatch({
         type: 'oilfee/fetchProvideDriver',
         payload: {
-          member_id: 26,
           page: 1,
           pageSize: 10,
           isAll: 1,
@@ -178,7 +168,6 @@ export default class OilFeeRecycleSelect extends PureComponent {
       dispatch({
         type: 'oilfee/fetchProvideCompany',
         payload: {
-          member_id: 26,
           page: 1,
           pageSize: 10,
           isAll: 1,
@@ -215,7 +204,6 @@ export default class OilFeeRecycleSelect extends PureComponent {
     this.props.dispatch({
       type: 'oilfee/fetchProvideRecycle',
       payload: {
-        member_id: 26,
         grantType,
         data: value,
       },
@@ -252,6 +240,7 @@ export default class OilFeeRecycleSelect extends PureComponent {
         }
         width={650}
         onCancel={() => this.cancelHandle(handleModalVisible)}
+        maskClosable={false}
       >
         <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 16 }} label="回收对象">
           {getFieldDecorator('reObject', {

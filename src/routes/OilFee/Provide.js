@@ -58,6 +58,7 @@ const CreateForm2 = Form.create()(props => {
       okText="上传"
       onOk={okHandle}
       onCancel={() => setImportmodal()}
+      maskClosable={false}
     >
       <Row>
         <Col span={12}>
@@ -101,6 +102,8 @@ export default class ProvideComponent extends PureComponent {
     current: 1,
     grantModalVisible: false,
     formValues: {},
+    flag: false,
+    clearTimer: 0,
     recycleModalVisible: false,
     rangePickerValue: getTimeDistance('month'),
     activeKey: 'list',
@@ -118,20 +121,19 @@ export default class ProvideComponent extends PureComponent {
     //总账户详情
     dispatch({
       type: 'oilfee/fetch1',
-      payload: { member_id: 26 },
+      payload: {  },
     });
 
     //分公司名称
     dispatch({
       type: 'oilfee/fetchBranch',
-      payload: { member_id: 26 },
+      payload: {  },
     });
 
     //油费发放详情
     dispatch({
       type: 'oilfee/fetch4Detail',
       payload: {
-        member_id: 26,
         page: 1,
         pageSize: 10,
         isCount: 1,
@@ -157,7 +159,6 @@ export default class ProvideComponent extends PureComponent {
       dispatch({
         type: 'oilfee/fetch4Detail',
         payload: {
-          member_id: 26,
           page: 1,
           pageSize: 10,
           isCount: 1,
@@ -204,7 +205,6 @@ export default class ProvideComponent extends PureComponent {
     dispatch({
       type: 'oilfee/fetch4Detail',
       payload: {
-        member_id: 26,
         page: 1,
         pageSize: 10,
         isCount: 1,
@@ -213,8 +213,8 @@ export default class ProvideComponent extends PureComponent {
       },
     }).then(() => {
       this.setState({
-        current: 1
-      })
+        current: 1,
+      });
     });
   };
 
@@ -228,7 +228,6 @@ export default class ProvideComponent extends PureComponent {
       const startTime = startValue.format('YYYY-MM-DD');
       const endTime = endValue.format('YYYY-MM-DD');
       const params = {
-        member_id: 26,
         page: 1,
         pageSize: 10,
         isCount: 1,
@@ -259,8 +258,8 @@ export default class ProvideComponent extends PureComponent {
           payload: values,
         }).then(() => {
           this.setState({
-            current: 1
-          })
+            current: 1,
+          });
         });
       });
     } else {
@@ -277,7 +276,6 @@ export default class ProvideComponent extends PureComponent {
       const startTime = startValue.format('YYYY-MM-DD');
       const endTime = endValue.format('YYYY-MM-DD');
       const params = {
-        member_id: 26,
         page: pagination.current,
         pageSize: pagination.pageSize,
         isCount: 1,
@@ -308,8 +306,8 @@ export default class ProvideComponent extends PureComponent {
           payload: values,
         }).then(() => {
           this.setState({
-            current: pagination.current
-          })
+            current: pagination.current,
+          });
         });
       });
     } else {
@@ -376,9 +374,12 @@ export default class ProvideComponent extends PureComponent {
     let secondsToGo = 5;
     const modal = Modal.success({
       // title: 'This is a notification message',
-      content: `
-      文件上传中，可能需要几分钟处理时间，您可以先操作其他页面，处理完成后系统会提示您`,
+      content: `文件上传中，可能需要几分钟处理时间，您可以先操作其他页面，处理完成后系统会提示您`,
+      onOk: this.updateDriverList(),
     });
+  };
+  updateDriverList = () => {
+    console.log('updata', '更新了吗');
   };
 
   //上传
@@ -389,17 +390,16 @@ export default class ProvideComponent extends PureComponent {
     const endTime = endValue.format('YYYY-MM-DD');
     const { fileList } = this.state;
     const formData = new FormData();
-    if(fileList.length == 0) {
-      message.warning("请先上传文件！");
+    if (fileList.length == 0) {
+      message.warning('请先上传文件！');
       return;
-    }else if(fileList.length >= 2) {
-      message.warning("一次只能上传一个文件！");
+    } else if (fileList.length >= 2) {
+      message.warning('一次只能上传一个文件！');
       return;
     }
     fileList.forEach(file => {
       formData.append('files', file);
     });
-    // You can use any AJAX library you like
     reqwest({
       url: baseUrl + 'oilAccount/AsnycDistribute',
       method: 'post',
@@ -419,47 +419,7 @@ export default class ProvideComponent extends PureComponent {
             importModal: false,
           });
           this.countDown();
-          setInterval(this.getinfo(),2000);
-
-          // // 获取异步上传文件已处理未读个数
-          // dispatch({
-          //   type: 'basicinfo/dingNotice',
-          //   payload: {},
-          // }).then(() => {
-          //   const { dingNotice } = this.props.basicinfo;
-          //   if (dingNotice.num > 0) {
-          //     //异步文件未读消息列表
-          //     dispatch({
-          //       type: 'basicinfo/noticeList',
-          //       payload: {
-          //         isCount: 1,
-          //       },
-          //     }).then(() => {
-          //       const { noticeList } = this.props.basicinfo;
-          //       const list = noticeList.list;
-          //       this.openNotification(list);
-          //       //刷新
-          //       //总账户详情
-          //       dispatch({
-          //         type: 'oilfee/fetch1',
-          //         payload: { member_id: 26 },
-          //       });
-
-          //       //油费发放详情
-          //       dispatch({
-          //         type: 'oilfee/fetch4Detail',
-          //         payload: {
-          //           member_id: 26,
-          //           page: 1,
-          //           pageSize: 10,
-          //           isCount: 1,
-          //           startTime,
-          //           endTime,
-          //         },
-          //       });
-          //     });
-          //   }
-          // });
+          this.getinfo();
         } else {
           //清空excel列表
           this.setState({
@@ -467,15 +427,6 @@ export default class ProvideComponent extends PureComponent {
           });
           message.error(response.msg);
         }
-
-        // message.success(response.msg);
-        // //部分成功，response.res.result == 0,response.res.path != "",下载出错提示文件
-        // if (response.res.result == 0 && response.res.path != '') {
-        //   window.open(response.res.path);
-        // }
-        // this.setState({
-        //   modalVisible: false,
-        // });
       },
       error: err => {
         //清空excel列表
@@ -487,46 +438,71 @@ export default class ProvideComponent extends PureComponent {
       },
     });
   };
-  getinfo=()=>{
+  getinfo = () => {
     const { dispatch, form } = this.props;
-   // 获取异步上传文件已处理未读个数
-   dispatch({
-    type: 'basicinfo/dingNotice',
-    payload: {},
-  }).then(() => {
-    const { dingNotice } = this.props.basicinfo;
-    if (dingNotice.num > 0) {
-      //异步文件未读消息列表
-      dispatch({
-        type: 'basicinfo/noticeList',
-        payload: {
-          isCount: 1,
-        },
-      }).then(() => {
-        const { noticeList } = this.props.basicinfo;
-        const list = noticeList.list;
-        this.openNotification(list);
-        // //清空所属分公司旧数据
-        // form.resetFields('belongCompanyId');
-        
-        //刷新
-        //司机管理下拉列表
+    // 获取异步上传文件已处理未读个数
+    dispatch({
+      type: 'basicinfo/dingNotice',
+      payload: {},
+    }).then(() => {
+      const { rangePickerValue } = this.state; //startValue,endValue
+      const [startValue, endValue] = rangePickerValue;
+      const startTime = startValue.format('YYYY-MM-DD');
+      const endTime = endValue.format('YYYY-MM-DD');
+      const { dingNotice } = this.props.basicinfo;
+      if (dingNotice.num > 0) {
+        //异步文件未读消息列表
         dispatch({
-          type: 'basicinfo/fetch2',
+          type: 'basicinfo/noticeList',
           payload: {
-            member_id: 4,
-            page: 1,
-            pageSize: 10,
             isCount: 1,
           },
+        }).then(() => {
+          const { noticeList } = this.props.basicinfo;
+          const list = noticeList.list;
+          this.openNotification(list);
+          // //清空所属分公司旧数据
+          // form.resetFields('belongCompanyId');
         });
-        return false
+      }
+      if (this.state.flag === true) {
+        this.setState({ flag: false });
+        return false;
+      } else {
+        if (this.state.clearTimer === 0) {
+          this.clearFlag();
+        }
+      }
+      setTimeout(this.getinfo, 3000);
+      //刷新
+      //总账户详情
+      dispatch({
+        type: 'oilfee/fetch1',
+        payload: {  },
       });
-    }else{
-      this.getinfo();
-    }
-  });
-  }
+      //油费发放详情
+      dispatch({
+        type: 'oilfee/fetch4Detail',
+        payload: {
+          page: 1,
+          pageSize: 10,
+          isCount: 1,
+          startTime,
+          endTime,
+        },
+      });
+    });
+  };
+  //设置定时器
+  clearFlag = () => {
+    const timer = setTimeout(() => {
+      this.setState({
+        flag: true,
+        clearTimer: 0,
+      });
+    }, 1000 * 120);
+    this.setState({ clearTimer: timer });
+  };
   openNotification = list => {
     const key = `open${Date.now()}`;
     for (let i = 0; i < list.length; i++) {
@@ -599,8 +575,8 @@ export default class ProvideComponent extends PureComponent {
     notification.close(key);
   };
 
-   // 关闭异步弹框
-   close = (key) => {
+  // 关闭异步弹框
+  close = key => {
     notification.close(key);
   };
 
@@ -704,7 +680,7 @@ export default class ProvideComponent extends PureComponent {
     const paginationProps = {
       showQuickJumper: true,
       showSizeChanger: true,
-      total: count,
+      total: parseInt(count),
       current: this.state.current,
       showTotal: () => `共计 ${count} 条`,
     };

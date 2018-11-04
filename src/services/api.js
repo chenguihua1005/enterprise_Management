@@ -62,6 +62,13 @@ export async function queryBasicinfoBranch(params) {
     body: params,
   });
 }
+// 获取分公司等级
+export async function queryGetCompanyLevel(params) {
+  return request(baseUrl + 'common/GetCompanyLevel', {
+    method: 'POST',
+    body: params,
+  });
+}
 //分公司详情
 export async function querySubsidiaryInfo(params) {
   return request(baseUrl + 'CompanyBranch/getCompanyBranchDetails', {
@@ -288,6 +295,13 @@ export async function queryoilfee2(params) {
 //帐户-公司账户流水明细（总公司/分公司
 export async function queryoilfee2detail(params) {
   return request(baseUrl + 'oilAccount/OilAccountRunning', {
+    method: 'POST',
+    body: params,
+  });
+}
+//帐户-获取公司等级
+export async function queryoilfeeCompanyLevel(params) {
+  return request(baseUrl + 'Common/GetCompanyLevel', {
     method: 'POST',
     body: params,
   });

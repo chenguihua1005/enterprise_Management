@@ -1,15 +1,14 @@
 import * as React from 'react';
-export interface ILinearProps {
-  title: React.ReactNode;
-  color?: string;
-  padding?: [number, number, number, number];
-  height: number;
+export interface IlinearChartProps {
   data: Array<{
     x: string;
-    y: number;
+    y1: string;
+    y2: string;
   }>;
-  autoLabel?: boolean;
+  titleMap: { y1: string; y2: string };
+  padding?: [number, number, number, number];
+  height?: number;
   style?: React.CSSProperties;
 }
 
-export default class Linear extends React.Component<ILinearProps, any> {}
+export default class LinearChart extends React.Component<IlinearChartProps, any> {}

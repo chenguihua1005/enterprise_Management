@@ -31,7 +31,6 @@ export default class AccountDriverDetailComponent extends PureComponent {
     dispatch({
       type: 'oilfee/fetch3Detail',
       payload: {
-        member_id: 26,
         page: 1,
         pageSize: 10,
         isCount: 1,
@@ -70,7 +69,6 @@ export default class AccountDriverDetailComponent extends PureComponent {
       const endTime = endValue.format('YYYY-MM-DD');
       const params = {
         //默认值
-        member_id: 26,
         page: 1,
         pageSize: 10,
         isCount: 1,
@@ -266,7 +264,7 @@ export default class AccountDriverDetailComponent extends PureComponent {
     const paginationProps = {
       showQuickJumper: true,
       showSizeChanger: true,
-      total: count,
+      total: parseInt(count),
       current: this.state.current,
       showTotal: () => `共计 ${count} 条`,
     };

@@ -198,9 +198,9 @@ function clearAuthority(data){
 function formatterMenuData(MenuData) {
   // const msg=window.localStorage.getItem('currentAuthority');
   const clearMenuData=clearAuthority(MenuData);
-  console.log('clear', clearMenuData);
+  // console.log('clear', clearMenuData);
   const arr = JSON.parse(window.localStorage.getItem('loginRole'));
-  console.log('arr', arr);
+  // console.log('arr', arr);
   if (Array.isArray(arr) && arr.length > 0) {
     arr.forEach((item) => {
       renderMenuItem(clearMenuData, item.amUrl);
@@ -240,5 +240,5 @@ function formatter(data, parentPath = '/', parentAuthority) {
 }
 // console.log('MenuData',formatterMenuData(menuData));  //给没有权限的节点设置权限
 //根节点的权限不能动，没有权限的模块设置一下就可以了
-console.log('MenuData11',menuData);
+// console.log('MenuData11',menuData);
 export const getMenuData = () => formatter(formatterMenuData(menuData));

@@ -67,7 +67,7 @@ const CreateForm = Form.create()(props => {
   const checkAccount = (rule, value, callback) => {
     //与表单数据进行关联
     //正则用//包起来
-    var regex = /^[1][3-8][0-9]{9}$/;
+    var regex = /^[1][3-9][0-9]{9}$/;
     var re = new RegExp(regex);
     if (value.length == 11) {
       //react使用正则表达式变量的test方法进行校验，直接使用value.match(regex)显示match未定义
@@ -167,6 +167,7 @@ const CreateForm = Form.create()(props => {
       onOk={okHandle}
       onCancel={() => handleCloseModalVisible(false)}
       destroyOnClose={true}
+      maskClosable={false}
     >
             <Row gutter={{ md: 8, lg: 24, xl: 24 }}>
         <Col span={12}>
@@ -197,7 +198,7 @@ const CreateForm = Form.create()(props => {
                   required: true,
                   message: '请输入正确的手机号',
                   max: 11,
-                  pattern: /^[1][3-8][0-9]{9}$/
+                  pattern: /^[1][3-9][0-9]{9}$/
                 },
                 // {
                 //   //这里input内的输入内容进行绑定函数即可，在Input里面无需进行函数绑定开使用验证（红色部分）
@@ -210,7 +211,7 @@ const CreateForm = Form.create()(props => {
         <Col span={12}>
           <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 15 }} label="所属分公司">
             {form.getFieldDecorator('branchId', {
-              basicinfo: [{ required: true, message: '请选择分公司' }],
+              rules: [{ required: true, message: '请选择所属分公司!' }],
               initialValue: userData.parentBranchId,
             })(
               <Select
@@ -331,7 +332,7 @@ export default class Driver extends PureComponent {
         repeatPassword: '',
         remark: '',
         branchId: '全部',
-        parentBranchId: '请选择',
+        // parentBranchId: '',
       },
     };
   }
@@ -541,7 +542,7 @@ export default class Driver extends PureComponent {
         const { basicinfo} = this.props;
         const {appMenuRole}=basicinfo;//获取到默认角色的权限菜单
         const {list:menuRole}=appMenuRole;
-        menuRole.sort(this.compareSort("level"));
+        menuRole.sort(this.compareSort("amOrder"));
         const TreeData=this.formatGetData(menuRole);
        
         this.isChange = false;
@@ -554,7 +555,7 @@ export default class Driver extends PureComponent {
           repeatPassword: '',
           remark: '',
           branchId: '',
-          parentBranchId: '请选择',
+          // parentBranchId: '',
         };
         this.setState({
           modalVisible: !!flag,
@@ -700,7 +701,7 @@ export default class Driver extends PureComponent {
                   if(record.isLive==2){
                     message.warn("当前角色无效，无法默认当前角色");
                   }
-                  menuRole.sort(this.compareSort("level"));
+                  menuRole.sort(this.compareSort("amOrder"));
                   const TreeData=this.formatGetData(menuRole);
                   this.isChange = true;
                   this.title = '编辑',
@@ -776,7 +777,7 @@ export default class Driver extends PureComponent {
             const { resetPassword } = s.props.basicinfo;
             //err=0成功
             if (resetPassword.err == 0) {
-              message.success(resetPassword.msg);
+              message.success("重置成功，新的密码已通过短信发送！");
             } else {
               message.error(resetPassword.msg);
             }
@@ -924,9 +925,9 @@ compareSort= (prop)=> {
           val2 = Number(val2);
       }
       if (val1 < val2) {
-          return -1;
-      } else if (val1 > val2) {
           return 1;
+      } else if (val1 > val2) {
+          return -1;
       } else {
           return 0;
       }            
@@ -945,7 +946,7 @@ renderHaveRoleMenu=(arId)=>{
     const { basicinfo} = this.props;
     const {appMenuRole}=basicinfo;//获取到角色的权限菜单
     const {list:menuRole}=appMenuRole;
-    menuRole.sort(this.compareSort("level"));
+    menuRole.sort(this.compareSort("amOrder"));
     const TreeData=this.formatGetData(menuRole);
     //更新树形菜单
     this.setState({
@@ -984,7 +985,7 @@ renderHaveRoleMenu=(arId)=>{
     const paginationProps = {
       showQuickJumper: true,
       showSizeChanger: true,
-      total: count,
+      total: parseInt(count),
       current:current,
       showTotal: () => `共计 ${count} 条`,
     };

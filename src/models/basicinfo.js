@@ -30,7 +30,8 @@ import {
   querySetRoleAuth,
   queryUsersRole,
   querySetRoleAdd,
-  queryDelRole
+  queryDelRole,
+  queryGetCompanyLevel
 } from '../services/api';
 
 export default {
@@ -50,6 +51,8 @@ export default {
     branchCompany: [],
     //司机管理-所属分公司
     branchCompany2: [],
+    //分公司等级
+    companyLevel: [],
     //是否有效
     isValid: {},
     driverInfo: {}, //司机编辑
@@ -134,6 +137,18 @@ export default {
           subsidiaryBranchList3: response.res.list,
         },
       });
+    },
+    //分公司管理-上级分公司，全部
+    *getCompanyLevel({ payload }, { call, put }) {
+      const response = yield call(queryGetCompanyLevel, payload);
+      if (response) {
+        yield put({
+          type: 'save',
+          payload: {
+           companyLevel: response.res,
+          },
+        });
+      }
     },
     //司机管理下拉列表
     *fetch2({ payload }, { call, put }) {

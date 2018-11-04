@@ -11,9 +11,7 @@ import {
   Button,
   Modal,
   Badge,
-  Divider,
   message,
-  Popconfirm,
   Upload,
   Icon,
   notification,
@@ -22,6 +20,7 @@ import reqwest from 'reqwest';
 import { baseUrl } from '../../services/api';
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
 import styles from './Basicinfo.less';
+import { isMobileNumber } from '../../utils/utils';
 
 const FormItem = Form.Item;
 const { Option } = Select;
@@ -59,6 +58,7 @@ const CreateForm2 = Form.create()(props => {
       onOk={okHandle}
       onCancel={() => setImportmodal(false)}
       destroyOnClose={true}
+      maskClosable={false}
     >
       <Row>
         <Col span={12}>
@@ -119,7 +119,7 @@ const CreateForm = Form.create()(props => {
     handleAdd,
     closeModalVisible,
     branchOptions2,
-    ValidationOptions,
+    // ValidationOptions,
     driverData,
     isChange,
   } = props;
@@ -135,23 +135,6 @@ const CreateForm = Form.create()(props => {
     form.resetFields();
     closeModalVisible(flag);
   };
-  //验证手机号
-  const checkAccount = (rule, value, callback) => {
-    //正则用//包起来
-    // var regex = /^((\+)?86|((\+)?86)?)0?1[3458]\d{9}$/;
-    var regex = /^[1][3-8][0-9]{9}$/;
-    var re = new RegExp(regex);
-    if (value.length == 11) {
-      //react使用正则表达式变量的test方法进行校验，直接使用value.match(regex)显示match未定义
-      if (re.test(value)) {
-        callback();
-      } else {
-        callback('请输入正确的手机号码！');
-      }
-    } else {
-      callback('请输入11位的手机号码！');
-    }
-  };
 
   //编辑需要请求数据渲染
   return (
@@ -161,6 +144,7 @@ const CreateForm = Form.create()(props => {
       visible={modalVisible}
       onOk={okHandle}
       onCancel={() => handleCloseModalVisible(false)}
+      maskClosable={false}
     >
       <Row>
         <Col span={12}>
@@ -171,7 +155,7 @@ const CreateForm = Form.create()(props => {
                 { type: 'string', required: true, message: '请输入手机号码!' },
                 {
                   //这里input内的输入内容进行绑定函数即可，在Input里面无需进行函数绑定开使用验证（红色部分）
-                  validator: checkAccount,
+                  validator: isMobileNumber,
                 },
               ],
             })(<Input placeholder="请输入" disabled={isChange} />)}
@@ -190,7 +174,7 @@ const CreateForm = Form.create()(props => {
         <Col span={12}>
           <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 15 }} label="所属分公司">
             {getFieldDecorator('companyId', {
-              basicinfo: [{ required: true, message: 'Please input some description...' }],
+              rules: [{ required: true, message: '请选择所属分公司!' }],
               initialValue: driverData.belongCompanyId,
             })(
               <Select
@@ -249,6 +233,8 @@ export default class Driver extends PureComponent {
   state = {
     current: 1,
     isChange: false, //默认新增
+    flag:false,
+    clearTimer:0,
     driverProps: {
       bindRelationId: '',
       employeeId: '',
@@ -284,7 +270,6 @@ export default class Driver extends PureComponent {
     dispatch({
       type: 'basicinfo/fetch2',
       payload: {
-        member_id: 4,
         page: 1,
         pageSize: 10,
         isCount: 1,
@@ -295,7 +280,6 @@ export default class Driver extends PureComponent {
     dispatch({
       type: 'basicinfo/fetchBranchCompany',
       payload: {
-        member_id: 4,
         isNeedAll: 1, //是否需要全部字段 1需要
       },
     });
@@ -303,7 +287,6 @@ export default class Driver extends PureComponent {
     dispatch({
       type: 'basicinfo/fetchBranchCompany2',
       payload: {
-        member_id: 4,
         isNeedAll: 0,
       },
     });
@@ -390,7 +373,6 @@ export default class Driver extends PureComponent {
     if (isChange === false) {
       //新增
       const payload = {
-        // member_id: 4,
         employeeMobile: fields.employeeMobile,
         employeeName: fields.employeeName,
         companyId: fields.companyId || 0, //不选默认传0
@@ -411,7 +393,6 @@ export default class Driver extends PureComponent {
             dispatch({
               type: 'basicinfo/fetch2',
               payload: {
-                // member_id: 4,
                 page: 1,
                 pageSize: 10,
                 isCount: 1,
@@ -433,7 +414,6 @@ export default class Driver extends PureComponent {
       console.log(driverProps);
       const params = {
         //默认值
-        member_id: 4,
         employeeName: fields.employeeName,
         companyId: fields.companyId || 0, //不选默认传0
         status: fields.status,
@@ -457,7 +437,6 @@ export default class Driver extends PureComponent {
             dispatch({
               type: 'basicinfo/fetch2',
               payload: {
-                member_id: 4,
                 page: 1,
                 pageSize: 10,
                 isCount: 1,
@@ -477,24 +456,25 @@ export default class Driver extends PureComponent {
   };
 
   countDown = () => {
-    let secondsToGo = 5;
     const modal = Modal.success({
       // title: 'This is a notification message',
       content: `
       文件上传中，可能需要几分钟处理时间，您可以先操作其他页面，处理完成后系统会提示您`,
+      onOk:this.updateDriverList()
     });
   };
+  updateDriverList=()=>{
+    console.log("updata","更新了吗");
+  }
   //上传
   handleAdd2 = (fields, form) => {
-    // const { dispatch } = this.props;
-    const { fileList } = this.state;
+    const { fileList,flag} = this.state;
     const formData = new FormData();
     formData.append('belongCompanyId', fields.belongCompanyId);
     fileList.forEach(file => {
       formData.append('excel', file);
     });
     // formData.append('excel', fields.excel.file);
-    // You can use any AJAX library you like
     reqwest({
       url: baseUrl + 'driver/importDriverInfo',
       method: 'post',
@@ -515,58 +495,11 @@ export default class Driver extends PureComponent {
           });
           this.countDown();
            //清空所属分公司旧数据
-          form.resetFields('belongCompanyId');
-          this.getinfo();
-          // setInterval(this.getinfo(),2000);
-
-
-
-          // 获取异步上传文件已处理未读个数
-          // dispatch({
-          //   type: 'basicinfo/dingNotice',
-          //   payload: {},
-          // }).then(() => {
-          //   const { dingNotice } = this.props.basicinfo;
-          //   if (dingNotice.num > 0) {
-          //     //异步文件未读消息列表
-          //     dispatch({
-          //       type: 'basicinfo/noticeList',
-          //       payload: {
-          //         isCount: 1,
-          //       },
-          //     }).then(() => {
-          //       const { noticeList } = this.props.basicinfo;
-          //       const list = noticeList.list;
-          //       this.openNotification(list);
-          //       //清空所属分公司旧数据
-          //       form.resetFields('belongCompanyId');
-          //       //刷新
-          //       //司机管理下拉列表
-          //       dispatch({
-          //         type: 'basicinfo/fetch2',
-          //         payload: {
-          //           member_id: 4,
-          //           page: 1,
-          //           pageSize: 10,
-          //           isCount: 1,
-          //         },
-          //       });
-          //     });
-          //   }
-          // });
+          form.resetFields('belongCompanyId')
+          this.getinfo()
         } else {
           message.error(response.msg);
         }
-
-        // message.success('upload successfully.');
-        // message.success(response.msg);
-        // //部分成功，response.err=15556,response.res.downLoadUrl != "",下载出错提示文件
-        // if (response.err == 15556 && response.res.downLoadUrl != '') {
-        //   window.open(response.res.downLoadUrl);
-        // }
-        // this.setState({
-        //   modalVisible: false,
-        // });
       },
       error: err => {
         //清空司机信息excel列表
@@ -577,51 +510,67 @@ export default class Driver extends PureComponent {
       },
     });
   };
+  //每隔3秒轮循请求
   getinfo=()=>{
     const { dispatch, form } = this.props;
    // 获取异步上传文件已处理未读个数
    dispatch({
     type: 'basicinfo/dingNotice',
     payload: {},
-  }).then(() => {
-    const { dingNotice } = this.props.basicinfo;
-    if (dingNotice.num > 0) {
-      //异步文件未读消息列表
-      dispatch({
-        type: 'basicinfo/noticeList',
-        payload: {
-          isCount: 1,
-        },
-      }).then(() => {
-        const { noticeList } = this.props.basicinfo;
-        const list = noticeList.list;
-        this.openNotification(list);
-        // //清空所属分公司旧数据
-        // form.resetFields('belongCompanyId');
-        
-        //刷新
-        //司机管理下拉列表
+    }).then(() => {
+      const { dingNotice } = this.props.basicinfo;
+      if (dingNotice.num > 0) {
+        //异步文件未读消息列表
         dispatch({
-          type: 'basicinfo/fetch2',
+          type: 'basicinfo/noticeList',
           payload: {
-            member_id: 4,
-            page: 1,
-            pageSize: 10,
             isCount: 1,
           },
+        }).then(() => {
+          const { noticeList } = this.props.basicinfo;
+          const list = noticeList.list;
+          this.openNotification(list);
+          // //清空所属分公司旧数据
+          // form.resetFields('belongCompanyId');
+          // setTimeout(this.getinfo,5000);
+          // return false
         });
-        return false
-      });
-    }else{
+      }
+      if(this.state.flag===true){
+        this.setState({flag:false});
+        return false;
+      }else{
+        if(this.state.clearTimer===0){
+          this.clearFlag();
+        }
+      }
       setTimeout(this.getinfo,3000);
-    }
-  });
+      //刷新
+      //司机管理下拉列表
+      dispatch({
+        type: 'basicinfo/fetch2',
+        payload: {
+          page: 1,
+          pageSize: 10,
+          isCount: 1,
+        },
+      });
+    });
   };
+  //设置定时器
+  clearFlag=()=>{
+    const timer=setTimeout(()=>{
+      this.setState({
+        flag:true,
+        clearTimer:0
+      });
+    },1000*120);
+    this.setState({clearTimer:timer});
+  }
   openNotification = list => {
     const key = `open${Date.now()}`;
-    for (var i = 0; i < list.length; i++) {
+    for (let i = 0; i < list.length; i++) {
       const tmp = list[i];
-      // const notice = tmp.notice_type = 300 ? '油费管理' : '司机管理';
       if (tmp.err === 0) {
         notification.success({
           key,
@@ -705,7 +654,6 @@ export default class Driver extends PureComponent {
     form.validateFields((err, fieldsValue) => {
       if (err) return;
       const params = {
-        member_id: 4,
         page: 1,
         pageSize: 10,
         isCount: 1,
@@ -745,7 +693,6 @@ export default class Driver extends PureComponent {
     form.validateFields((err, fieldsValue) => {
       if (err) return;
       const params = {
-        member_id: 4,
         page: pagination.current,
         pageSize: pagination.pageSize,
         isCount: 1,
@@ -783,7 +730,6 @@ export default class Driver extends PureComponent {
     this.setState({
       importModal: !!flag,
     });
-    // console.log('->setImportmodal');
     //清空司机信息excel列表
     this.setState({
       fileList: [],
@@ -793,7 +739,6 @@ export default class Driver extends PureComponent {
 
   // 下载模板
   setDownload = () => {
-    console.log('setDownload');
     const { dispatch } = this.props;
     const params = {
       template: 'driver_1.0.0.xlsx',
@@ -818,7 +763,6 @@ export default class Driver extends PureComponent {
 
   // 删除
   handleDelete = record => {
-    // alert(record);
     // 删除司机
     const { dispatch } = this.props;
     const params = {
@@ -841,7 +785,6 @@ export default class Driver extends PureComponent {
           dispatch({
             type: 'basicinfo/fetch2',
             payload: {
-              member_id: 4,
               page: 1,
               pageSize: 10,
               isCount: 1,
@@ -896,7 +839,7 @@ export default class Driver extends PureComponent {
     }
 
     //是否有效
-    const ValidationOptions = [];
+    //const ValidationOptions = [];
     // for (let p in isValid) {
     //   // str = str + obj[p]; //这里p为键，obj[p]为值
     //   ValidationOptions.push(
@@ -910,7 +853,7 @@ export default class Driver extends PureComponent {
     const paginationProps = {
       showQuickJumper: true,
       showSizeChanger: true,
-      total: count,
+      total: parseInt(count),
       current: this.state.current,
       showTotal: () => `共计 ${count} 条`,
     };
@@ -942,7 +885,7 @@ export default class Driver extends PureComponent {
       handleAdd: this.handleAdd,
       closeModalVisible: this.closeModalVisible,
       branchOptions2,
-      ValidationOptions,
+      // ValidationOptions,
       driverData,
       isChange: this.state.isChange,
     };

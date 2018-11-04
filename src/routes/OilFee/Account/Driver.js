@@ -53,7 +53,6 @@ export default class AccountBranchComponent extends PureComponent {
     this.props.dispatch({
       type: 'oilfee/fetchProvideRecycle',
       payload: {
-        member_id: 26,
         grantType: 2,
         data: info.employeeId,
       },
@@ -61,6 +60,10 @@ export default class AccountBranchComponent extends PureComponent {
   };
   // 发放弹窗 操作
   handleGrantModalVisible = (status, info) => {
+    if (info.isRecover == 0 || info.isRecover == 2) {
+      message.warning('您只能给有效司机发放油费！');
+      return;
+    }
     this.setState({
       grantModalVisible: status,
       grantInfo: info,
@@ -72,13 +75,12 @@ export default class AccountBranchComponent extends PureComponent {
     //帐户-获取油卡账户详情
     dispatch({
       type: 'oilfee/fetch1',
-      payload: { member_id: 26 },
+      payload: {},
     });
     //帐户-获取司机油卡账户详情列表
     dispatch({
       type: 'oilfee/fetch3',
       payload: {
-        member_id: 26,
         page: 1,
         pageSize: 10,
         isCount: 1,
@@ -86,13 +88,31 @@ export default class AccountBranchComponent extends PureComponent {
     });
   }
 
+  //重置
+  handleFormReset = () => {
+    const { form, dispatch } = this.props;
+    form.resetFields();
+    //帐户-获取司机油卡账户详情列表
+    dispatch({
+      type: 'oilfee/fetch3',
+      payload: {
+        page: 1,
+        pageSize: 10,
+        isCount: 1,
+      },
+    }).then(() => {
+      this.setState({
+        current: 1,
+      });
+    });
+  };
+
   // 搜索
   handleSearch = e => {
     e.preventDefault();
     const { dispatch, form } = this.props;
     const params = {
       //默认值
-      member_id: 26,
       page: 1,
       pageSize: 10,
       isCount: 1,
@@ -125,8 +145,8 @@ export default class AccountBranchComponent extends PureComponent {
         payload: values,
       }).then(() => {
         this.setState({
-          current: 1
-        })
+          current: 1,
+        });
       });
     });
   };
@@ -135,7 +155,6 @@ export default class AccountBranchComponent extends PureComponent {
   handleStandardTableChange = (pagination, filtersArg, sorter) => {
     const { dispatch, form } = this.props;
     const params = {
-      member_id: 26,
       page: pagination.current,
       pageSize: pagination.pageSize,
       isCount: 1,
@@ -168,8 +187,8 @@ export default class AccountBranchComponent extends PureComponent {
         payload: values,
       }).then(() => {
         this.setState({
-          current: pagination.current
-        })
+          current: pagination.current,
+        });
       });
     });
   };
@@ -231,6 +250,9 @@ export default class AccountBranchComponent extends PureComponent {
                 <Button style={{ marginLeft: 8 }} onClick={this.handleExport}>
                   <Icon type="export" />导出
                 </Button>
+                <Button style={{ marginLeft: 8 }} onClick={this.handleFormReset}>
+                  重置
+                </Button>
               </span>
             </div>
           </Col>
@@ -290,7 +312,7 @@ export default class AccountBranchComponent extends PureComponent {
     const paginationProps = {
       showQuickJumper: true,
       showSizeChanger: true,
-      total: count,
+      total: parseInt(count),
       current: this.state.current,
       showTotal: () => `共计 ${count} 条`,
     };
@@ -323,7 +345,7 @@ export default class AccountBranchComponent extends PureComponent {
           <span>
             <Button
               type="primary"
-              disabled={record.status == 0 || record.status == 1001}
+              // disabled={record.status == 0 || record.status == 1001}
               onClick={() => this.handleGrantModalVisible(true, record)}
             >
               发放油费

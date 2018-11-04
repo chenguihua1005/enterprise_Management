@@ -3,7 +3,7 @@ import {
   queryoilfee1List,
   queryoilfee1ListExport,
   queryoilfee2,
-  queryoilfee2detail,
+  queryoilfeeCompanyLevel,
   queryoilfee3,
   queryoilfee3Export,
   queryoilfee3List,
@@ -29,6 +29,7 @@ export default {
     oilAccountInfoListExport: {},
     oilBranchInfoList: {},
     oilBranchInfodetailList: {},
+    oilBranchInfoCompanyLevel: [],
     oilDriverInfoList: {},
     oilDriverInfoListExport: {},
     oilDriverInfodetailList: {},
@@ -165,6 +166,16 @@ export default {
         type: 'save',
         payload: {
           branchCompany: response.res,
+        },
+      });
+    },
+    //获取公司等级
+    *fetchCompanyLevel({ payload }, { call, put }) {
+      const response = yield call(queryoilfeeCompanyLevel, payload);
+      yield put({
+        type: 'save',
+        payload: {
+          oilBranchInfoCompanyLevel: response.res,
         },
       });
     },

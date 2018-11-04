@@ -25,24 +25,10 @@ const FormItem = Form.Item;
 const Option = Select.Option;
 const { RangePicker } = DatePicker;
 const dateFormat = 'YYYY/MM/DD HH:mm:ss';
-// 全部城市
-const provinceData = ['全部', 'Zhejiang', 'Jiangsu'];
-// 全部地区
-const cityData = {
-  全部: ['全部'],
-  Zhejiang: ['Hangzhou', 'Ningbo', 'Wenzhou'],
-  Jiangsu: ['Nanjing', 'Suzhou', 'Zhenjiang'],
-};
 
 const CreateForm = Form.create()(props => {
   const { modalVisible, form, setModalVisible, orderDetails, orderStatus } = props;
-  // const okHandle = () => {
-  //   form.validateFields((err, fieldsValue) => {
-  //     if (err) return;
-  //     form.resetFields();
-  //     handleAdd(fieldsValue);
-  //   });
-  // };
+
   return (
     <Modal
       title="订单详情"
@@ -135,23 +121,25 @@ export default class OrderList extends PureComponent {
       selectedRows: [],
       modalVisible: false,
       current: 1,
-      rangePickerValue: getTimeDistance('month'),
+      rangePickerValue: [],
     };
+    this.startTime = '';
+    this.endTime = '';
   }
 
   componentDidMount() {
     const { dispatch } = this.props;
-    const { rangePickerValue } = this.state; //startValue,endValue
-    const [startValue, endValue] = rangePickerValue;
-    const startTime = startValue.format('YYYY-MM-DD');
-    const endTime = endValue.format('YYYY-MM-DD');
+    // const { rangePickerValue } = this.state; //startValue,endValue
+    // const [startValue, endValue] = rangePickerValue;
+    // const startTime = startValue.format('YYYY-MM-DD');
+    // const endTime = endValue.format('YYYY-MM-DD');
     //列表
     dispatch({
       type: 'order/searchOrder',
       payload: {
         page: 1,
         count: 10,
-        time: {start: startTime ,  end: endTime},
+        // time: {start: startTime ,  end: endTime},
       },
     });
 
@@ -212,10 +200,15 @@ export default class OrderList extends PureComponent {
   handleStandardTableChange = (pagination, filtersArg, sorter) => {
     const { dispatch, form } = this.props;
     const { rangePickerValue } = this.state;
-    const [startValue, endValue] = rangePickerValue;
     if (Object.keys(rangePickerValue).length != 0) {
-      const startTime = startValue.format('YYYY-MM-DD HH:mm:ss');
-      const endTime = endValue.format('YYYY-MM-DD HH:mm:ss');
+      const [startValue, endValue] = rangePickerValue;
+      this.startTime = startValue.format('YYYY-MM-DD');
+      this.endTime = endValue.format('YYYY-MM-DD');
+    } else {
+      this.startTime = '';
+      this.endTime = '';
+    }
+      
       form.validateFields((err, fieldsValue) => {
         if (err) return;
         for (const prop in fieldsValue) {
@@ -237,67 +230,10 @@ export default class OrderList extends PureComponent {
           cityId: fieldsValue.cityId,
           status: fieldsValue.status,
           likeVal: fieldsValue.likeVal,
-          time: [{ start: startTime }, { end: endTime }],
+          time: [{ start: this.startTime }, { end: this.endTime }],
           page: pagination.current,
           count: pagination.pageSize,
           isCount: 1,
-        };
-
-        const values = {
-          ...params,
-          transactionType: fieldsValue.transactionType,
-          direction: fieldsValue.direction,
-        }; // this.setState({
-        //   formValues: values,
-        //   barTitle:thirdTitle,
-        //   rankType:fieldsValue["rankType"]
-        // });
-        dispatch({
-          type: 'order/searchOrder',
-          payload: values,
-        }).then( () => {
-          this.setState({
-            current:pagination.current
-          })
-        });
-      });
-    } else {
-      message.error('日期不能为空');
-    }
-  };
-  // 模糊查询
-  handleSearch = e => {
-    e.preventDefault();
-    const { dispatch, form } = this.props;
-    const { rangePickerValue } = this.state;
-    const [startValue, endValue] = rangePickerValue;
-    if (Object.keys(rangePickerValue).length != 0) {
-      const startTime = startValue.format('YYYY-MM-DD');
-      const endTime = endValue.format('YYYY-MM-DD');
-      form.validateFields((err, fieldsValue) => {
-        if (err) return;
-        for (const prop in fieldsValue) {
-          if (
-            fieldsValue[prop] === '' ||
-            fieldsValue[prop] === '全部' ||
-            fieldsValue[prop] === undefined
-          ) {
-            delete fieldsValue[prop];
-          }
-        }
-        const params = {
-          orderSn: fieldsValue.orderSn,
-          ossId: fieldsValue.ossId,
-          branchId: fieldsValue.branchId,
-          payType: fieldsValue.payType,
-          proSku: fieldsValue.proSku,
-          provinceId: fieldsValue.provinceId,
-          cityId: fieldsValue.cityId,
-          status: fieldsValue.status,
-          likeVal: fieldsValue.likeVal,
-          time: {start: startTime ,  end: endTime},
-          page: 1,
-          count: 10,
         };
 
         const values = {
@@ -310,13 +246,65 @@ export default class OrderList extends PureComponent {
           payload: values,
         }).then( () => {
           this.setState({
-            current:1
+            current:pagination.current
           })
         });
       });
+  
+  };
+  // 模糊查询
+  handleSearch = e => {
+    e.preventDefault();
+    const { dispatch, form } = this.props;
+    const { rangePickerValue } = this.state;
+    if (Object.keys(rangePickerValue).length != 0) {
+      const [startValue, endValue] = rangePickerValue;
+      this.startTime = startValue.format('YYYY-MM-DD');
+      this.endTime = endValue.format('YYYY-MM-DD');
     } else {
-      message.error('日期不能为空');
+      this.startTime = '';
+      this.endTime = '';
     }
+    form.validateFields((err, fieldsValue) => {
+      if (err) return;
+      for (const prop in fieldsValue) {
+        if (
+          fieldsValue[prop] === '' ||
+          fieldsValue[prop] === '全部' ||
+          fieldsValue[prop] === undefined
+        ) {
+          delete fieldsValue[prop];
+        }
+      }
+      const params = {
+        orderSn: fieldsValue.orderSn,
+        ossId: fieldsValue.ossId,
+        branchId: fieldsValue.branchId,
+        payType: fieldsValue.payType,
+        proSku: fieldsValue.proSku,
+        provinceId: fieldsValue.provinceId,
+        cityId: fieldsValue.cityId,
+        status: fieldsValue.status,
+        likeVal: fieldsValue.likeVal,
+        time: {start: this.startTime ,  end: this.endTime},
+        page: 1,
+        count: 10,
+      };
+
+      const values = {
+        ...params,
+        transactionType: fieldsValue.transactionType,
+        direction: fieldsValue.direction,
+      }; 
+      dispatch({
+        type: 'order/searchOrder',
+        payload: values,
+      }).then( () => {
+        this.setState({
+          current:1
+        })
+      });
+    });
   };
   //日期框设置值
   handleRangePickerChange = rangePickerValue => {
@@ -336,18 +324,18 @@ export default class OrderList extends PureComponent {
     form.resetFields();
     this.setState({
       formValues: {},
-      rangePickerValue: getTimeDistance('month'),
+      rangePickerValue: [],
     });
-    const [startValue, endValue] = getTimeDistance('month');
-    const startTime = startValue.format('YYYY-MM-DD');
-    const endTime = endValue.format('YYYY-MM-DD');
+    // const [startValue, endValue] = getTimeDistance('month');
+    // const startTime = startValue.format('YYYY-MM-DD');
+    // const endTime = endValue.format('YYYY-MM-DD');
     //列表
     dispatch({
       type: 'order/searchOrder',
       payload: {
         page: 1,
         count: 10,
-        time: {start: startTime ,  end: endTime},
+        // time: {start: startTime ,  end: endTime},
       },
     }).then( () => {
       this.setState({
@@ -359,63 +347,63 @@ export default class OrderList extends PureComponent {
   //导出
   handleExport = () => {
     const { dispatch, form } = this.props;
-    const { getFieldValue } = form;
     const { rangePickerValue } = this.state;
-    const [startValue, endValue] = rangePickerValue;
     if (Object.keys(rangePickerValue).length != 0) {
-      const startTime = startValue.format('YYYY-MM-DD');
-      const endTime = endValue.format('YYYY-MM-DD');
-      form.validateFields((err, fieldsValue) => {
-        if (err) return;
-        for (const prop in fieldsValue) {
-          if (
-            fieldsValue[prop] === '' ||
-            fieldsValue[prop] === '全部' ||
-            fieldsValue[prop] === undefined
-          ) {
-            delete fieldsValue[prop];
-          }
-        }
-        const params = {
-          orderSn: fieldsValue.orderSn,
-          ossId: fieldsValue.ossId,
-          branchId: fieldsValue.branchId,
-          payType: fieldsValue.payType,
-          proSku: fieldsValue.proSku,
-          provinceId: fieldsValue.provinceId,
-          cityId: fieldsValue.cityId,
-          status: fieldsValue.status,
-          likeVal: fieldsValue.likeVal,
-          time: [{ start: startTime }, { end: endTime }],
-          page: 1,
-          count: 10,
-          actionType: 1,
-        };
-
-        const values = {
-          ...params,
-          transactionType: fieldsValue.transactionType,
-          direction: fieldsValue.direction,
-        };
-        dispatch({
-          type: 'order/searchOrderExport',
-          payload: values,
-        }).then(() => {
-          const { exportList } = this.props.order;
-          switch (exportList.err) {
-            //err=0成功
-            case 0:
-              message.success(exportList.msg);
-              window.open(exportList.res.path);
-              break;
-            default:
-              message.warning(exportList.msg);
-          }
-        });
-      });
+      const [startValue, endValue] = rangePickerValue;
+      this.startTime = startValue.format('YYYY-MM-DD');
+      this.endTime = endValue.format('YYYY-MM-DD');
     } else {
-      message.error('日期不能为空');
+      this.startTime = '';
+      this.endTime = '';
     }
+    form.validateFields((err, fieldsValue) => {
+      if (err) return;
+      for (const prop in fieldsValue) {
+        if (
+          fieldsValue[prop] === '' ||
+          fieldsValue[prop] === '全部' ||
+          fieldsValue[prop] === undefined
+        ) {
+          delete fieldsValue[prop];
+        }
+      }
+      const params = {
+        orderSn: fieldsValue.orderSn,
+        ossId: fieldsValue.ossId,
+        branchId: fieldsValue.branchId,
+        payType: fieldsValue.payType,
+        proSku: fieldsValue.proSku,
+        provinceId: fieldsValue.provinceId,
+        cityId: fieldsValue.cityId,
+        status: fieldsValue.status,
+        likeVal: fieldsValue.likeVal,
+        time: [{ start: this.startTime }, { end: this.endTime }],
+        page: 1,
+        count: 10,
+        actionType: 1,
+      };
+
+      const values = {
+        ...params,
+        transactionType: fieldsValue.transactionType,
+        direction: fieldsValue.direction,
+      };
+      dispatch({
+        type: 'order/searchOrderExport',
+        payload: values,
+      }).then(() => {
+        const { exportList } = this.props.order;
+        switch (exportList.err) {
+          //err=0成功
+          case 0:
+            message.success(exportList.msg);
+            window.open(exportList.res.path);
+            break;
+          default:
+            message.warning(exportList.msg);
+        }
+      });
+    });
   };
 
   //城市联动
@@ -429,12 +417,6 @@ export default class OrderList extends PureComponent {
       },
     });
   };
-  // 地区
-  // onSecondCityChange = (value) => {
-  //   this.setState({
-  //     secondCity: value,
-  //   });
-  // }
   // 订单状态
   getOrderDetails = value => {
     if (value === '待支付' || value === '支付中' || value === '支付失败') {
@@ -538,7 +520,7 @@ export default class OrderList extends PureComponent {
     const paginationProps = {
       showQuickJumper: true,
       showSizeChanger: true,
-      total: total,
+      total: parseInt(total),
       current: this.state.current,
       showTotal: () => `共计 ${total} 条`,
     };
@@ -559,14 +541,6 @@ export default class OrderList extends PureComponent {
         console.log(`selectedRowKeys: ${selectedRowKeys}`, 'selectedRows: ', selectedRows);
       },
     };
-
-    // getBillStatus = (status) => {
-    //     if(status == '1') {
-    //       return <Badge text="待付款"/>
-    //     }else if(status == '2'){
-    //       return <Badge text="已付款"/>
-    //     }
-    // }
 
     const column = [
       {
@@ -736,14 +710,15 @@ export default class OrderList extends PureComponent {
                   </Col>
                   <Col md={8} sm={24}>
                     <FormItem label="时间">
+                    {getFieldDecorator('time')(
                       <RangePicker
-                        allowClear
-                        showTime
-                        value={rangePickerValue}
-                        disabledDate={this.disabledDate}
+                        // allowClear
+                        // showTime
+                        // value={rangePickerValue}
+                        // disabledDate={this.disabledDate}
                         onChange={this.handleRangePickerChange}
                         style={{ width: '100%' }}
-                      />
+                      />)}
                     </FormItem>
                   </Col>
                   <Col md={8} sm={24}>

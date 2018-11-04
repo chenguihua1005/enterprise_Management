@@ -1,7 +1,20 @@
 import React, { PureComponent } from 'react';
 import { connect } from 'dva';
 
-import { Row, Col, Card, Form, Tabs, Button, Table, Divider, Input, Icon } from 'antd';
+import {
+  Row,
+  Col,
+  Card,
+  Form,
+  Tabs,
+  Button,
+  Table,
+  Divider,
+  Input,
+  Icon,
+  Select,
+  message,
+} from 'antd';
 
 import PageHeaderLayout from '../../../layouts/PageHeaderLayout';
 
@@ -13,6 +26,7 @@ import OilFeeGrantSingle from '../components/OilFeeGrantSingle';
 
 const FormItem = Form.Item;
 const TabPane = Tabs.TabPane;
+const { Option } = Select;
 
 @connect(({ oilfee, loading }) => ({
   oilfee,
@@ -26,7 +40,6 @@ export default class AccountBranchComponent extends PureComponent {
     const panes = [{ title: '分公司账户', content: '', key: '1' }];
     this.state = {
       current: 1,
-      formValues: {},
       activeKey: panes[0].key,
       panes,
       recycleModalVisible: false,
@@ -37,6 +50,10 @@ export default class AccountBranchComponent extends PureComponent {
   }
   // 回收 modal 操作
   handleRecycleModalVisible = (status, info) => {
+    if (info.distributeStatus == 0) {
+      message.warning('您只能回收一级分公司油费！');
+      return;
+    }
     this.setState({
       recycleModalVisible: status,
       recycleInfo: info,
@@ -46,7 +63,6 @@ export default class AccountBranchComponent extends PureComponent {
     this.props.dispatch({
       type: 'oilfee/fetchProvideRecycle',
       payload: {
-        member_id: 26,
         grantType: 1,
         data: info.companyBranchId,
       },
@@ -54,6 +70,10 @@ export default class AccountBranchComponent extends PureComponent {
   };
   // 发放弹窗 操作
   handleGrantModalVisible = (status, info) => {
+    if (info.distributeStatus == 0) {
+      message.warning('您只能给一级分公司发放油费！');
+      return;
+    }
     this.setState({
       grantModalVisible: status,
       grantInfo: info,
@@ -64,19 +84,42 @@ export default class AccountBranchComponent extends PureComponent {
     //总账户详情
     dispatch({
       type: 'oilfee/fetch1',
-      payload: { member_id: 26 },
+      payload: {},
     });
     //帐户-获取分公司油卡账户详情
     dispatch({
       type: 'oilfee/fetch2',
       payload: {
-        member_id: 26,
         page: 1,
         pageSize: 10,
         isCount: 1,
       },
     });
+    //获取公司等级
+    dispatch({
+      type: 'oilfee/fetchCompanyLevel',
+      payload: {},
+    });
   }
+
+  //重置
+  handleFormReset = () => {
+    const { form, dispatch } = this.props;
+    form.resetFields();
+    //帐户-获取分公司油卡账户详情
+    dispatch({
+      type: 'oilfee/fetch2',
+      payload: {
+        page: 1,
+        pageSize: 10,
+        isCount: 1,
+      },
+    }).then(() => {
+      this.setState({
+        current: 1,
+      });
+    });
+  };
 
   // 搜索
   handleSearch = e => {
@@ -84,12 +127,12 @@ export default class AccountBranchComponent extends PureComponent {
     const { dispatch, form } = this.props;
     const params = {
       //默认值
-      member_id: 26,
       page: 1,
       pageSize: 10,
       isCount: 1,
-      mobilePhone: '',
+      // mobilePhone: '',
       branchName: '',
+      companyLevel: -1,
     };
     // 表单校验
     form.validateFields((err, fieldsValue) => {
@@ -106,14 +149,15 @@ export default class AccountBranchComponent extends PureComponent {
       const values = {
         ...params,
         branchName: fieldsValue.branchName,
+        companyLevel: fieldsValue.branchLevel,
       };
       dispatch({
         type: 'oilfee/fetch2',
         payload: values,
       }).then(() => {
         this.setState({
-          current: 1
-        })
+          current: 1,
+        });
       });
     });
   };
@@ -123,12 +167,12 @@ export default class AccountBranchComponent extends PureComponent {
     const { dispatch, form } = this.props;
     const params = {
       //默认值
-      member_id: 26,
       page: pagination.current,
       pageSize: pagination.pageSize,
       isCount: 1,
-      mobilePhone: '',
+      // mobilePhone: '',
       branchName: '',
+      companyLevel: -1,
     };
     // 表单校验
     form.validateFields((err, fieldsValue) => {
@@ -145,20 +189,21 @@ export default class AccountBranchComponent extends PureComponent {
       const values = {
         ...params,
         branchName: fieldsValue.branchName,
+        companyLevel: fieldsValue.branchLevel,
       };
       dispatch({
         type: 'oilfee/fetch2',
         payload: values,
       }).then(() => {
         this.setState({
-          current: pagination.current
-        })
+          current: pagination.current,
+        });
       });
     });
   };
 
   // 搜索区表单
-  renderAdvancedForm() {
+  renderAdvancedForm(companyLevelOptions) {
     const { getFieldDecorator } = this.props.form;
     return (
       <Form onSubmit={this.handleSearch} layout="inline">
@@ -166,13 +211,28 @@ export default class AccountBranchComponent extends PureComponent {
           <Col md={12} sm={24}>
             <FormItem label="分公司名称">{getFieldDecorator('branchName')(<Input />)}</FormItem>
           </Col>
-          <Col md={12} sm={24} style={{ float: 'right' }}>
+          <Col md={12} sm={24}>
+            <FormItem label="分公司级别">
+              {getFieldDecorator('branchLevel', {
+                initialValue: -1,
+              })(
+                <Select placeholder="请选择" style={{ width: '100%' }}>
+                  {companyLevelOptions}
+                </Select>
+              )}
+            </FormItem>
+          </Col>
+        </Row>
+        <div style={{ overflow: 'hidden' }}>
+          <span style={{ float: 'right', marginTop: 24 }}>
             <Button type="primary" htmlType="submit">
               <Icon type="search" />查询
             </Button>
-            {/* <Button style={{ marginLeft: 10 }}>重置</Button> */}
-          </Col>
-        </Row>
+            <Button style={{ marginLeft: 8 }} onClick={this.handleFormReset}>
+              重置
+            </Button>
+          </span>
+        </div>
       </Form>
     );
   }
@@ -227,20 +287,40 @@ export default class AccountBranchComponent extends PureComponent {
 
   render() {
     const { oilfee, loading } = this.props;
-    const { oilBranchInfoList, oilAccountInfo } = oilfee;
+    const { oilBranchInfoList, oilAccountInfo, oilBranchInfoCompanyLevel } = oilfee;
     const { count, list: tabledata } = oilBranchInfoList;
+
+    //公司等级
+    const companyLevelOptions = [];
+    //遍历前要检查是否存在，不然会报错： Cannot read property 'forEach' of undefined
+    if (oilBranchInfoCompanyLevel != undefined && oilBranchInfoCompanyLevel.length > 0) {
+      oilBranchInfoCompanyLevel.forEach(item => {
+        companyLevelOptions.push(
+          <Option key={item.key} value={item.key}>
+            {item.value}
+          </Option>
+        );
+      });
+    }
+
     //分页属性设置
     const paginationProps = {
       showQuickJumper: true,
       showSizeChanger: true,
       current: this.state.current,
-      total: count,
+      total: parseInt(count),
       showTotal: () => `共计 ${count} 条`,
     };
     const columnData = [
       {
         title: '分公司名称',
         dataIndex: 'companyBranchName',
+      },
+      {
+        title: '分公司级别',
+        dataIndex: 'companylevel',
+        render: text =>
+          text == '1' ? '一级分公司' : '二级分公司',
       },
       {
         title: '可用余额(元)',
@@ -269,7 +349,7 @@ export default class AccountBranchComponent extends PureComponent {
           <Col xs={24}>
             <Card bordered={false}>
               <div className={`${styles.tableListForm} ${styles.noMarginBottom}`}>
-                {this.renderAdvancedForm()}
+                {this.renderAdvancedForm(companyLevelOptions)}
               </div>
             </Card>
           </Col>

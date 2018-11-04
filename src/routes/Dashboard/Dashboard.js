@@ -7,6 +7,7 @@ import { ChartCard, yuan, Bar, Linear } from 'components/Charts';
 import { getTimeDistance } from '../../utils/utils';
 import styles from './Dashboard.less';
 import sha1 from 'crypto-js/sha1';
+import Authorized from '../../utils/Authorized';
 const { TabPane } = Tabs;
 const { RangePicker } = DatePicker;
 const Yuan = ({ children }) => (
@@ -14,7 +15,11 @@ const Yuan = ({ children }) => (
     dangerouslySetInnerHTML={{ __html: yuan(children) }} /* eslint-disable-line react/no-danger */
   />
 );
-
+const havePermissionAsync = new Promise(resolve => {
+  setTimeout(() => resolve(), 1000);
+  });
+  const { Secured } = Authorized;
+  @Secured(havePermissionAsync)
 @connect(({ dashboard, loading }) => ({
   dashboard,
   loading: loading.effects['dashboard/fetch'],
@@ -29,6 +34,7 @@ export default class Dashboard extends Component {
       salesType: 'all',
       currentTabKey: '',
       rangePickerValue: getTimeDistance('week'),
+      tabTitle:"liter",
     };
   }
 
@@ -55,29 +61,25 @@ export default class Dashboard extends Component {
     });
   }
 
-
-  // handleChangeSalesType = e => {
-  //   this.setState({
-  //     salesType: e.target.value,
-  //   });
-  // };
-
-  // handleTabChange = key => {
-  //   this.setState({
-  //     currentTabKey: key,
-  //   });
-  // };
-
-  // handleRangePickerChange = rangePickerValue => {
-  //   this.setState({
-  //     rangePickerValue,
-  //   });
-  //   const { dispatch } = this.props;
-  //   dispatch({
-  //     type: 'dashboard/fetchSalesData',
-  //   });
-  // };
-
+  //切换分页图形
+  handleTabCallback=(key)=>{
+    this.setState({
+      tabTitle:key
+    });
+  }
+    //取对应的标注数据
+  titleChartMapSource=(data,targetTitle)=>{
+  //与之前不同的处理方法，每次都是固定的类型可以写死
+    if(data){
+      let rObj={}
+      for(const prop in data){
+        if(prop==targetTitle){
+          rObj["y1"]= data[prop];
+        }
+      }
+      return rObj;
+    }
+  }
   //本周:1, 本月:2
   selectDate = type => {
     if(type === 1) {
@@ -118,39 +120,50 @@ export default class Dashboard extends Component {
     }
   }
 
+  //图形数据处理
+  chartFormatData=(data,enumdata)=>{  
+    if(data){
+      let reformat=data.map((item,index)=>{
+      let newObj={};
+      for(const prop in item){
+        if(prop=="date"){
+          newObj["month"]=item[prop];
+        }else if(prop=="key"){
+          delete item[prop];
+        }else{
+          newObj[enumdata[prop]]=item[prop];
+        }
+      }
+        return newObj;
+      });
+      return reformat;
+    }
+  }
+
   render() {
     const { dashboard, loading, form } = this.props;
     const { statisticsInfo, addOilStatistics, branchAddOilStatistics } = dashboard;
+    const { tabTitle } = this.state;
+    const enumData={"money":"加油金额","liter":"加油升数"};
+    const titleMapSource=this.titleChartMapSource(enumData,tabTitle);
+    // //图形数据处理
+    const chartFormat=this.chartFormatData(addOilStatistics,enumData);
+
     // const { rangePickerValue } = this.state;
     // const { salesData } = dashboard;
-    let salesData = [];
-    let salesData2 = [];
+    // let salesData = [];
+    // let salesData2 = [];
     if (branchAddOilStatistics === {}) {
       branchAddOilStatistics: [];
     }
-    if(Object.prototype.toString.call(addOilStatistics) === '[object Array]'){
-      addOilStatistics.map(item => {
-        salesData.push({ x: item.date, y: item.liter });
-      });
-      addOilStatistics.map(item => {
-        salesData2.push({ x: item.date, y: item.money });
-      });
-    }
-  
-    const menu = (
-      <Menu>
-        <Menu.Item>操作一</Menu.Item>
-        <Menu.Item>操作二</Menu.Item>
-      </Menu>
-    );
-
-    const iconGroup = (
-      <span className={styles.iconGroup}>
-        <Dropdown overlay={menu} placement="bottomRight">
-          <Icon type="ellipsis" />
-        </Dropdown>
-      </span>
-    );
+    // if(Object.prototype.toString.call(addOilStatistics) === '[object Array]'){
+    //   addOilStatistics.map(item => {
+    //     salesData.push({ x: item.date, y: item.liter });
+    //   });
+    //   addOilStatistics.map(item => {
+    //     salesData2.push({ x: item.date, y: item.money });
+    //   });
+    // }
 
     const salesExtra = (
       <div className={styles.salesExtraWrap}>
@@ -245,13 +258,13 @@ export default class Dashboard extends Component {
 
         <Card loading={loading} bordered={false} bodyStyle={{ padding: 0 }}>
           <div className={styles.salesCard}>
-            <Tabs tabBarExtraContent={salesExtra} size="large" tabBarStyle={{ marginBottom: 24 }}>
-              <TabPane tab="加油升数" key="sales">
+            <Tabs tabBarExtraContent={salesExtra} size="large" tabBarStyle={{ marginBottom: 24 }} defaultActiveKey="liter" onChange={this.handleTabCallback}>
+              <TabPane tab="加油升数" key="liter">
                 <Row>
                   <Col xl={16} lg={12} md={12} sm={24} xs={24}>
                     <div className={styles.salesBar}>
                       {/* <Bar height={295} title="加油升数趋势" data={salesData} /> */}
-                      <Linear height={295} width={300} title="加油升数趋势" data={salesData} />
+                      <Linear height={295} width={300} title="加油升数趋势" data={chartFormat} titleMap={titleMapSource} />
                     </div>
                   </Col>
                   {branchAddOilStatistics &&
@@ -273,13 +286,12 @@ export default class Dashboard extends Component {
                   )}
                 </Row>
               </TabPane>
-              <TabPane tab="加油金额" key="views">
+              <TabPane tab="加油金额" key="money">
                 <Row>
                   <Col xl={16} lg={12} md={12} sm={24} xs={24}>
                     <div className={styles.salesBar}>
                       {/* <Bar height={292} title="加油金额趋势" data={salesData} /> */}
-                      <Linear height={292} title="加油金额趋势" data={salesData2} />
-                    </div>
+                      <Linear height={292} title="加油金额趋势" data={chartFormat} titleMap={titleMapSource} />                    </div>
                   </Col>
                   {branchAddOilStatistics &&
                   JSON.stringify(branchAddOilStatistics) == '{}' ? null : (

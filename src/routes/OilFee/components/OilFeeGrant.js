@@ -14,6 +14,7 @@ import {
   Table,
   Popconfirm,
 } from 'antd';
+import { isNum } from '../../../utils/utils';
 const FormItem = Form.Item;
 const { Option } = Select;
 const Search = Input.Search;
@@ -51,18 +52,17 @@ export default class OilFeeGrantComponent extends PureComponent {
     dispatch({
       type: 'oilfee/fetchProvideCompany',
       payload: {
-        member_id: 26,
         page: 1,
         pageSize: 10,
         // isAll: 1,
         isCount: 1,
+        distribute: 1,
       },
     });
     //获取司机
     dispatch({
       type: 'oilfee/fetchProvideDriver',
       payload: {
-        member_id: 26,
         page: 1,
         pageSize: 10,
         // isAll: 1,
@@ -71,13 +71,6 @@ export default class OilFeeGrantComponent extends PureComponent {
       },
     });
   }
-
-  IsNum = s => {
-    let re = /^(\-|\+)?\d+(\.\d+)?$/; //判断字符串是否为数字
-    if (!re.test(s)) {
-      return false;
-    } else return true;
-  };
 
   // 提交表单的操作
   handleSubmit = e => {
@@ -89,7 +82,7 @@ export default class OilFeeGrantComponent extends PureComponent {
         let objList = [];
         if (this.state.isAverage) {
           //等额发放
-          if (!this.IsNum(this.state.averageCount)) {
+          if (!isNum(this.state.averageCount)) {
             message.warning('金额必须为数字');
             return;
           } else if (parseFloat(this.state.averageCount) <= 0) {
@@ -109,7 +102,7 @@ export default class OilFeeGrantComponent extends PureComponent {
           }
         } else {
           for (let item of data) {
-            if (!this.IsNum(item.average)) {
+            if (!isNum(item.average)) {
               message.warning('金额必须为数字');
               return;
             } else if (parseFloat(item.average) <= 0) {
@@ -132,7 +125,6 @@ export default class OilFeeGrantComponent extends PureComponent {
         dispatch({
           type: 'oilfee/fetchProvideDistribute',
           payload: {
-            member_id: 26,
             grantType,
             data: objList,
           },
@@ -161,24 +153,23 @@ export default class OilFeeGrantComponent extends PureComponent {
               //总账户详情
               dispatch({
                 type: 'oilfee/fetch1',
-                payload: { member_id: 26 },
+                payload: {  },
               });
               //获取公司
               dispatch({
                 type: 'oilfee/fetchProvideCompany',
                 payload: {
-                  member_id: 26,
                   page: 1,
                   pageSize: 10,
                   // isAll: 1,
                   isCount: 1,
+                  distribute: 1,
                 },
               });
               //获取司机
               dispatch({
                 type: 'oilfee/fetchProvideDriver',
                 payload: {
-                  member_id: 26,
                   page: 1,
                   pageSize: 10,
                   // isAll: 1,
@@ -220,18 +211,17 @@ export default class OilFeeGrantComponent extends PureComponent {
     dispatch({
       type: 'oilfee/fetchProvideCompany',
       payload: {
-        member_id: 26,
         page: 1,
         pageSize: 10,
         // isAll: 1,
         isCount: 1,
+        distribute: 1,
       },
     });
     //获取司机
     dispatch({
       type: 'oilfee/fetchProvideDriver',
       payload: {
-        member_id: 26,
         page: 1,
         pageSize: 10,
         // isAll: 1,
@@ -302,7 +292,6 @@ export default class OilFeeGrantComponent extends PureComponent {
       dispatch({
         type: 'oilfee/fetchProvideDriver',
         payload: {
-          member_id: 26,
           page: 1,
           pageSize: 10,
           isAll: 0,
@@ -322,12 +311,12 @@ export default class OilFeeGrantComponent extends PureComponent {
       dispatch({
         type: 'oilfee/fetchProvideCompany',
         payload: {
-          member_id: 26,
           page: 1,
           pageSize: 10,
           // isAll: 1,
           isCount: 1,
           branchName: value,
+          distribute: 1,
         },
       }).then(() => {
         this.setState({
@@ -360,7 +349,6 @@ export default class OilFeeGrantComponent extends PureComponent {
       dispatch({
         type: 'oilfee/fetchProvideDriver',
         payload: {
-          member_id: 26,
           page: pagination.current,
           pageSize: pagination.pageSize,
           // isAll: 1,
@@ -380,12 +368,12 @@ export default class OilFeeGrantComponent extends PureComponent {
       dispatch({
         type: 'oilfee/fetchProvideCompany',
         payload: {
-          member_id: 26,
           page: pagination.current,
           pageSize: pagination.pageSize,
           // isAll: 1,
           isCount: 1,
           branchName: this.state.searchText,
+          distribute: 1,
         },
       }).then(() => {
         this.setState({
@@ -450,7 +438,7 @@ export default class OilFeeGrantComponent extends PureComponent {
     const paginationProps = {
       showQuickJumper: true,
       showSizeChanger: true,
-      total: count,
+      total: parseInt(count),
       current: this.state.current,
       pageSize: this.state.pageSize,
       showTotal: () => `共计 ${count} 条`,
@@ -465,6 +453,7 @@ export default class OilFeeGrantComponent extends PureComponent {
         visible={this.state.checkboxModalVisible}
         onCancel={() => this.toggleCheckboxModal(false)}
         onOk={this.handleAddMotorcade}
+        maskClosable={false}
       >
         <div style={{ borderBottom: '1px solid #E9E9E9', marginBottom: 10, paddingBottom: 10 }}>
           <Row>

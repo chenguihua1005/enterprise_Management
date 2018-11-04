@@ -31,7 +31,6 @@ export default class AccountBranchDetailComponent extends PureComponent {
     dispatch({
       type: 'oilfee/fetch2Detail',
       payload: {
-        member_id: 26,
         branchId: companyId,
         page: 1,
         pageSize: 10,
@@ -52,7 +51,6 @@ export default class AccountBranchDetailComponent extends PureComponent {
       const startTime = startValue.format('YYYY-MM-DD');
       const endTime = endValue.format('YYYY-MM-DD');
       const params = {
-        member_id: 26,
         branchId: companyId,
         page: 1,
         pageSize: 10,
@@ -103,7 +101,6 @@ export default class AccountBranchDetailComponent extends PureComponent {
       const startTime = startValue.format('YYYY-MM-DD');
       const endTime = endValue.format('YYYY-MM-DD');
       const params = {
-        member_id: 26,
         branchId: companyId,
         page: pagination.current,
         pageSize: pagination.pageSize,
@@ -278,7 +275,7 @@ export default class AccountBranchDetailComponent extends PureComponent {
       showQuickJumper: true,
       showSizeChanger: true,
       current: this.state.current,
-      total: count,
+      total: parseInt(count),
       showTotal: () => `共计 ${count} 条`,
     };
     const columnData = [

@@ -181,3 +181,37 @@ const reg = /(((^https?:(?:\/\/)?)(?:[-;:&=\+\$,\w]+@)?[A-Za-z0-9.-]+(?::\d+)?|(
 export function isUrl(path) {
   return reg.test(path);
 }
+
+//判断字符串是否为数字
+export function isNum(s) {
+  let re = /^(\-|\+)?\d+(\.\d+)?$/; 
+  if (!re.test(s)) {
+    return false;
+  } else return true;
+}
+
+//判断是否为手机号
+export function isMobileNumber(rule, value, callback) {
+  let regex = /^[1][3-9][0-9]{9}$/;
+  if (value.length == 11) {
+    //react使用正则表达式变量的test方法进行校验，直接使用value.match(regex)显示match未定义
+    if (regex.test(value)) {
+      callback();
+    } else {
+      callback('请输入正确的手机号码！');
+    }
+  } else {
+    callback('请输入11位的手机号码！');
+  }
+}
+
+//判断是否为电话号码或者手机号码
+export function isTelNumber(rule, value, callback) {
+  let regex = /^(([0\+]\d{2,3}-)?(0\d{2,3})-)(\d{7,8})(-(\d{3,}))?$/;
+  let regex2 = /^[1][3-9][0-9]{9}$/;
+  if (regex.test(value) || regex2.test(value)) {
+    callback();
+  } else {
+    callback('请输入正确的电话号码！');
+  }
+}

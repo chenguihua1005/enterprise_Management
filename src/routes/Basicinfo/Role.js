@@ -59,6 +59,7 @@ const CreateForm = Form.create()(props => {
         onOk={okHandle}
         onCancel={cancelHandle}
         destroyOnClose={true}
+        maskClosable={false}
       >
        <Card>
         <div className={styles.tableList}>
@@ -139,6 +140,7 @@ const EditForm = Form.create()(props => {
         onOk={okHandle}
         onCancel={cancelHandle}
         destroyOnClose={true}
+        maskClosable={false}
       >
        <Card>
         <div className={styles.tableList}>
@@ -273,6 +275,7 @@ const RoleForm = Form.create()(props => {
         onOk={okHandle}
         onCancel={cancelHandle}
         destroyOnClose={true}
+        maskClosable={false}
       >
        <Card>
         <Tree
@@ -339,6 +342,7 @@ const LookForm = Form.create()(props => {
         onCancel={cancelHandle}
         footer={null}
         destroyOnClose={true}
+        maskClosable={false}
       >
        <Card>
         <Row gutter={{ md: 8, lg: 24, xl: 24 }} style={{marginBottom:20}}>
@@ -352,7 +356,7 @@ const LookForm = Form.create()(props => {
         <Row gutter={{ md: 8, lg: 24, xl: 24 }}>
             <Col md={24} sm={24}>
             <FormItem labelCol={{ span: 2 }} wrapperCol={{ span: 20 }} label="角色描述">
-                <TextArea style={{resize:"none",border:"none",paddingLeft:5,paddingTop:3,lineHeight:2.5}} readOnly="readOnly" value={`${lookModalItem.remark}`}>
+                <TextArea autosize={true} style={{resize:"none",border:"none",paddingLeft:5,paddingTop:3,lineHeight:2.5}} readOnly="readOnly" value={`${lookModalItem.remark}`}>
                 </TextArea>
             </FormItem> 
                 {/* <Field label="角色描述" value={`${lookModalItem.remark}`} title={`${lookModalItem.remark}`} /> */}
@@ -703,7 +707,7 @@ export default class Driver extends PureComponent {
               const { basicinfo} = this.props;
               const {appMenuRole}=basicinfo;//获取到权限菜单
               const {list:menuRole}=appMenuRole;
-              menuRole.sort(this.compareSort("level"));
+              menuRole.sort(this.compareSort("amOrder"));
               const selectNode=[];
               menuRole.forEach(item => {
                 if (item.isAuth == "1" && selectNode.indexOf(item.amId) == -1) {
@@ -753,7 +757,7 @@ export default class Driver extends PureComponent {
             const { basicinfo} = this.props;
             const {appMenuRole}=basicinfo;//获取到权限菜单
             const {list:menuRole}=appMenuRole;
-            menuRole.sort(this.compareSort("level"));
+            menuRole.sort(this.compareSort("amOrder"));
             const selectNode=[];
             menuRole.forEach(item => {
             if (item.isAuth == "1" && selectNode.indexOf(item.amId) == -1) {
@@ -912,9 +916,9 @@ export default class Driver extends PureComponent {
             val2 = Number(val2);
         }
         if (val1 < val2) {
-            return -1;
-        } else if (val1 > val2) {
             return 1;
+        } else if (val1 > val2) {
+            return -1;
         } else {
             return 0;
         }            
@@ -932,7 +936,7 @@ export default class Driver extends PureComponent {
     const paginationProps = {
       showQuickJumper: true,
       showSizeChanger: true,
-      total: count,
+      total: parseInt(count),
       current:current,
       showTotal: () => `共计 ${count} 条`,
     };

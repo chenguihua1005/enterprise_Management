@@ -1,108 +1,83 @@
 import React, { Component } from 'react';
-import { Chart, Axis, Tooltip, Geom } from 'bizcharts';
-import Debounce from 'lodash-decorators/debounce';
-import Bind from 'lodash-decorators/bind';
+import { Chart, Geom, Axis, Tooltip, Legend } from 'bizcharts';
+import DataSet from '@antv/data-set';
 import autoHeight from '../autoHeight';
-import styles from '../index.less';
+import styles from './index.less';
 
 @autoHeight()
-class Linear extends Component {
-  state = {
-    autoHideXLabels: false,
-  };
-
-  componentDidMount() {
-    window.addEventListener('resize', this.resize);
-  }
-
-  componentWillUnmount() {
-    window.removeEventListener('resize', this.resize);
-  }
-
-  handleRoot = n => {
-    this.root = n;
-  };
-
-  handleRef = n => {
-    this.node = n;
-  };
-
-  @Bind()
-  @Debounce(400)
-  resize() {
-    if (!this.node) {
-      return;
-    }
-    const canvasWidth = this.node.parentNode.clientWidth;
-    const { data = [], autoLabel = true } = this.props;
-    if (!autoLabel) {
-      return;
-    }
-    const minWidth = data.length * 30;
-    const { autoHideXLabels } = this.state;
-
-    if (canvasWidth <= minWidth) {
-      if (!autoHideXLabels) {
-        this.setState({
-          autoHideXLabels: true,
-        });
-      }
-    } else if (autoHideXLabels) {
-      this.setState({
-        autoHideXLabels: false,
-      });
-    }
-  }
-
+export default class LinearChart extends React.Component {
   render() {
     const {
-      height,
       title,
-      forceFit = true,
-      data,
-      color = 'rgba(24, 144, 255, 0.85)',
-      padding,
+      height = 400,
+      // padding = [60, 20, 40, 40],
+      titleMap = {
+        y1: 'y1',
+        y2: 'y2',
+        y3: 'y3',
+        y4: 'y4',
+        y5: 'y5',
+        y6: 'y6',
+        y7: 'y7',
+      },
+      borderWidth = 2,
+      targetType,
+      data = [
+        {
+          x: 0,
+          y1: 0,
+          y2: 0,
+          y3: 0,
+          y4: 0,
+          y5: 0,
+          y6: 0,
+          y7: 0,
+        },
+      ],
     } = this.props;
-
-    const { autoHideXLabels } = this.state;
-
-    const scale = {
-      x: {
-        type: 'cat',
-      },
-      y: {
-        min: 0,
-      },
-    };
-
-    const tooltip = [
-      'x*y',
-      (x, y) => ({
-        name: x,
-        value: y,
-      }),
-    ];
-
+    const ds = new DataSet();
+    const dv = ds.createView().source(data);
+    dv.transform({
+        type: 'fold',
+        fields: [titleMap.y1, titleMap.y2,titleMap.y3, titleMap.y4,titleMap.y5, titleMap.y6, titleMap.y7], // 展开字段集
+        key: 'key', // key字段
+        value: 'value', // value字段
+      });
+      const tooltip = [
+        'month*value',
+        (month, value) => ({
+          name: month,
+          value: (value*100)+"%",
+        }),
+      ];
+      
     return (
-      <div className={styles.chart} style={{ height }} ref={this.handleRoot}>
-        <div ref={this.handleRef}>
-          {title && <h4 style={{ marginBottom: 20 }}>{title}</h4>}
-          <Chart
-            scale={scale}
-            height={title ? height - 41 : height}
-            forceFit={forceFit}
-            data={data}
-            padding={padding || 'auto'}
-          >
-            <Axis
-              name="x"
-              title={false}
-              label={autoHideXLabels ? false : {}}
-              tickLine={autoHideXLabels ? false : {}}
-            />
-            <Axis name="y" min={0} />
-            <Tooltip showTitle={false} crosshairs={false} />
-            <Geom type="line" position="x*y" color={color} tooltip={tooltip} />
+      <div className={styles.lineChart}>
+        <div>
+          {title && <h4>{title}</h4>}
+          <Chart height={height} padding={ 'auto'} data={dv} forceFit>
+            <Axis name="month" />
+            <Axis name="value" label={{formatter(text,item,index){
+              if(targetType&&targetType=="percentage"){
+                return (text*100).toFixed(2)+"%";
+              }else{
+                return text;
+              } 
+            }}}/>
+            <Legend name="key" position="top"/>
+            <Tooltip showTitle={true}  crosshairs={{type:'line'}} />
+            {/* <Tooltip showTitle={false} crosshairs={false} /> */}
+            {/* tooltip={['month*value', (month, value) => {
+              if(value){
+                return {
+                  //自定义 tooltip 上显示的 title 显示内容等。
+                name:month,
+                value: (value*100)+"%",
+                };
+              }
+            }]} */}
+            <Geom type="area" position="month*value" color='key' />
+            <Geom type="line" position="month*value" size={2} color="key"  />
           </Chart>
         </div>
       </div>
@@ -110,4 +85,3 @@ class Linear extends Component {
   }
 }
 
-export default Linear;

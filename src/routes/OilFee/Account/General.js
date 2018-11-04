@@ -1,6 +1,18 @@
 import React, { PureComponent, Fragment } from 'react';
 import { connect } from 'dva';
-import { Row, Col, Card, Form, Select, Button, Table, DatePicker, Icon, message } from 'antd';
+import {
+  Row,
+  Col,
+  Card,
+  Form,
+  Select,
+  Button,
+  Table,
+  DatePicker,
+  Icon,
+  message,
+  Input,
+} from 'antd';
 import PageHeaderLayout from '../../../layouts/PageHeaderLayout';
 import styles from '../OilFee.less';
 import moment from 'moment';
@@ -24,7 +36,6 @@ export default class AccountGeneralComponent extends PureComponent {
   state = {
     current: 1,
     modalVisible: false,
-    formValues: {},
     rangePickerValue: getTimeDistance('month'),
   };
 
@@ -37,7 +48,7 @@ export default class AccountGeneralComponent extends PureComponent {
     //总账户详情
     dispatch({
       type: 'oilfee/fetch1',
-      payload: { member_id: 26 },
+      payload: {},
     }).then(() => {
       const { oilAccountInfo } = this.props.oilfee;
       const { companyType, belongCompanyId } = oilAccountInfo;
@@ -48,7 +59,6 @@ export default class AccountGeneralComponent extends PureComponent {
       dispatch({
         type: 'oilfee/fetch1List',
         payload: {
-          member_id: 26,
           branchId: this.branchId,
           page: 1,
           pageSize: 10,
@@ -65,16 +75,40 @@ export default class AccountGeneralComponent extends PureComponent {
     const { form, dispatch } = this.props;
     form.resetFields();
     this.setState({
-      formValues: {},
+      rangePickerValue: getTimeDistance('month'),
     });
+    const [startValue, endValue] = getTimeDistance('month');
+    const startTime = startValue.format('YYYY-MM-DD');
+    const endTime = endValue.format('YYYY-MM-DD');
+    //总账户详情
     dispatch({
-      type: 'oilfee/fetch',
+      type: 'oilfee/fetch1',
       payload: {},
-    }).then(() => {
-      this.setState({
-        current: 1
+    })
+      .then(() => {
+        const { oilAccountInfo } = this.props.oilfee;
+        const { companyType, belongCompanyId } = oilAccountInfo;
+        //companyType=1:总公司, branchId传0
+        //companyType=2:分公司, belongCompanyId为分公司ID
+        this.branchId = companyType == 1 ? 0 : belongCompanyId;
+        //总账户收支明细
+        dispatch({
+          type: 'oilfee/fetch1List',
+          payload: {
+            branchId: this.branchId,
+            page: 1,
+            pageSize: 10,
+            isCount: 1,
+            startTime,
+            endTime,
+          },
+        });
       })
-    });
+      .then(() => {
+        this.setState({
+          current: 1,
+        });
+      });
   };
 
   // 搜索
@@ -88,7 +122,6 @@ export default class AccountGeneralComponent extends PureComponent {
       const endTime = endValue.format('YYYY-MM-DD');
       const params = {
         //默认值
-        member_id: 26,
         //branchId为0为查询总公司
         branchId: this.branchId,
         page: 1,
@@ -98,6 +131,7 @@ export default class AccountGeneralComponent extends PureComponent {
         endTime,
         transactionType: 0,
         direction: 0,
+        transactionUser: '',
       };
 
       // 表单校验
@@ -117,6 +151,7 @@ export default class AccountGeneralComponent extends PureComponent {
           ...params,
           transactionType: fieldsValue.transactionType,
           direction: fieldsValue.direction,
+          transactionUser: fieldsValue.transactionUser,
         };
         //总账户收支明细
         dispatch({
@@ -124,8 +159,8 @@ export default class AccountGeneralComponent extends PureComponent {
           payload: values,
         }).then(() => {
           this.setState({
-            current: 1
-          })
+            current: 1,
+          });
         });
       });
     } else {
@@ -143,7 +178,6 @@ export default class AccountGeneralComponent extends PureComponent {
       const endTime = endValue.format('YYYY-MM-DD');
       const params = {
         //默认值
-        member_id: 26,
         //branchId为0为查询总公司
         branchId: this.branchId,
         page: pagination.current,
@@ -153,6 +187,7 @@ export default class AccountGeneralComponent extends PureComponent {
         endTime,
         transactionType: 0,
         direction: 0,
+        transactionUser: '',
       };
       // 表单校验
       form.validateFields((err, fieldsValue) => {
@@ -171,6 +206,7 @@ export default class AccountGeneralComponent extends PureComponent {
           ...params,
           transactionType: fieldsValue.transactionType,
           direction: fieldsValue.direction,
+          transactionUser: fieldsValue.transactionUser,
         };
         //总账户收支明细
         dispatch({
@@ -178,14 +214,13 @@ export default class AccountGeneralComponent extends PureComponent {
           payload: values,
         }).then(() => {
           this.setState({
-            current: pagination.current
-          })
+            current: pagination.current,
+          });
         });
       });
     } else {
       message.error('日期不能为空');
     }
-
   };
 
   //禁用当前日期之后的时间
@@ -293,19 +328,35 @@ export default class AccountGeneralComponent extends PureComponent {
             </FormItem>
           </Col>
         </Row>
-        <div style={{ overflow: 'hidden' }}>
-          <span style={{ float: 'right', marginBottom: 24 }}>
-            <Button type="primary" htmlType="submit">
-              <Icon type="search" />查询
-            </Button>
-            {/* <Button style={{ marginLeft: 8 }} onClick={this.handleFormReset}>
+        <Row gutter={{ md: 24, lg: 24, xl: 48 }}>
+          <Col md={12} sm={12}>
+            <FormItem label="交易方">
+              {getFieldDecorator('transactionUser', {})(
+                <Input
+                  placeholder="分公司名称/司机手机号/司机姓名"
+                />
+              )}
+            </FormItem>
+          </Col>
+          <Col md={12} sm={24}>
+            <div style={{ overflow: 'hidden' }}>
+              <span style={{ float: 'right', marginBottom: 24 }}>
+                <Button type="primary" htmlType="submit">
+                  <Icon type="search" />查询
+                </Button>
+                {/* <Button style={{ marginLeft: 8 }} onClick={this.handleFormReset}>
               重置
             </Button> */}
-            <Button style={{ marginLeft: 8 }} onClick={this.handleExport}>
-              <Icon type="export" />导出
-            </Button>
-          </span>
-        </div>
+                <Button style={{ marginLeft: 8 }} onClick={this.handleExport}>
+                  <Icon type="export" />导出
+                </Button>
+                <Button style={{ marginLeft: 8 }} onClick={this.handleFormReset}>
+                  重置
+                </Button>
+              </span>
+            </div>
+          </Col>
+        </Row>
       </Form>
     );
   }
@@ -328,7 +379,7 @@ export default class AccountGeneralComponent extends PureComponent {
     const paginationProps = {
       showQuickJumper: true,
       showSizeChanger: true,
-      total: count,
+      total: parseInt(count),
       current: this.state.current,
       showTotal: () => `共计 ${count} 条`,
     };

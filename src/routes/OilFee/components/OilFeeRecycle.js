@@ -1,6 +1,7 @@
 import React, { PureComponent } from 'react';
 import { connect } from 'dva';
 import { Form, Input, Modal, Select, message, Row, Col, Cascader } from 'antd';
+import { isNum } from '../../../utils/utils';
 const FormItem = Form.Item;
 const Option = Select.Option;
 
@@ -16,19 +17,12 @@ export default class OilFeeRecycle extends PureComponent {
     };
   }
 
-  IsNum = s => {
-    let re = /^(\-|\+)?\d+(\.\d+)?$/; //判断字符串是否为数字
-    if (!re.test(s)) {
-      return false;
-    } else return true;
-  };
-
   // 确定后提交操作与关闭弹窗
   okHandle = (callback, grantType, companyBranchOrDriverId, amount) => {
     const { dispatch, form } = this.props;
     form.validateFields((err, fieldsValue) => {
       if (!err) {
-        if (!this.IsNum(amount)) {
+        if (!isNum(amount)) {
           message.warning('金额必须为数字');
           return;
         } else if (parseFloat(amount) <= 0) {
@@ -43,7 +37,6 @@ export default class OilFeeRecycle extends PureComponent {
         dispatch({
           type: 'oilfee/fetchProvideRecover',
           payload: {
-            member_id: 26,
             grantType: grantType == 'driver' ? 2 : 1,
             driverId: companyBranchOrDriverId,
             branchId: companyBranchOrDriverId,
@@ -66,7 +59,6 @@ export default class OilFeeRecycle extends PureComponent {
           dispatch({
             type: 'oilfee/fetch2',
             payload: {
-              member_id: 26,
               page: 1,
               pageSize: 10,
               isCount: 1,
@@ -76,7 +68,6 @@ export default class OilFeeRecycle extends PureComponent {
           dispatch({
             type: 'oilfee/fetch3',
             payload: {
-              member_id: 26,
               page: 1,
               pageSize: 10,
               isCount: 1,
@@ -128,6 +119,7 @@ export default class OilFeeRecycle extends PureComponent {
         }
         width={650}
         onCancel={() => this.cancelHandle(handleModalVisible)}
+        maskClosable={false}
       >
         <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 16 }} label="回收对象">
           {getFieldDecorator('reObject')(

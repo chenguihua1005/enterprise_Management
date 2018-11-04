@@ -15,6 +15,7 @@ import {
   Badge,
 } from 'antd';
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
+import { isTelNumber } from '../../utils/utils';
 
 import styles from './Basicinfo.less';
 const FormItem = Form.Item;
@@ -65,6 +66,8 @@ const CreateForm = Form.create()(props => {
       visible={modalVisible}
       onOk={okHandle}
       onCancel={() => setModalVisible()}
+      destroyOnClose={true}
+      maskClosable={false}
     >
       <Row>
         <Col span={24}>
@@ -88,14 +91,10 @@ const CreateForm = Form.create()(props => {
         <Col span={12}>
           <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 15 }} label="所属分公司">
             {form.getFieldDecorator('parentCompanyId', {
-              basicinfo: [{ required: true, message: '请选择所属分公司' }],
-              initialValue:
-                branchOptions2.length === 0
-                  ? (subsidiaryData.parentId = '集团总公司')
-                  : subsidiaryData.parentId,
-              // initialText: "九一八分公司一车队二"
+              rules: [{ required: true, message: '请选择所属分公司!' }],
+              initialValue: subsidiaryData.parentId,
             })(
-              <Select placeholder="请选择" showSearch={true} style={{ width: '100%' }}>
+              <Select placeholder="请选择" showSearch={true} style={{ width: '100%' }} disabled={isChange}>
                 {options}
               </Select>
             )}
@@ -115,7 +114,11 @@ const CreateForm = Form.create()(props => {
         <Col span={12}>
           <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 15 }} label="联系电话">
             {form.getFieldDecorator('contactPhone', {
-              rules: [{ type: 'string', required: true, message: '请输入联系电话!' }],
+              rules: [{ type: 'string', required: true, message: '请输入联系电话!' },
+              {
+                validator: isTelNumber,
+              },
+            ],
               initialValue: subsidiaryData.mobile,
             })(<Input placeholder="请输入" />)}
           </FormItem>
@@ -143,7 +146,6 @@ const CreateForm = Form.create()(props => {
 export default class Subsidiary extends PureComponent {
   constructor(props) {
     super(props); // 调用积累所有的初始化方法
-    // this.isChange = false;
     this.userId = 0;
     this.disable = false;
     this.branchId = -1; //待编辑分公司ID
@@ -152,7 +154,6 @@ export default class Subsidiary extends PureComponent {
       isChange: false,
       title: '新增',
       modalVisible: false,
-      selectedRows: [],
       formValues: {},
       visible: false,
       //与添加分公司请求接口参数保持一致
@@ -191,6 +192,12 @@ export default class Subsidiary extends PureComponent {
         isNeedAll: 0,
       },
     });
+
+    //获取分公司级别
+    dispatch({
+      type: 'basicinfo/getCompanyLevel',
+      payload: {},
+    });
   }
 
   //重置
@@ -213,12 +220,6 @@ export default class Subsidiary extends PureComponent {
     });
   };
 
-  handleSelectRows = rows => {
-    this.setState({
-      selectedRows: rows,
-    });
-  };
-
   // 搜索
   handleSearch = e => {
     e.preventDefault();
@@ -227,7 +228,6 @@ export default class Subsidiary extends PureComponent {
     form.validateFields((err, fieldsValue) => {
       if (err) return;
       const params = {
-        // member_id: 26,
         page: 1,
         pageSize: 10,
         parentCompanyId: 0,
@@ -246,6 +246,7 @@ export default class Subsidiary extends PureComponent {
         companyName: fieldsValue.companyName,
         sortName: fieldsValue.sortName,
         parentCompanyId: fieldsValue.parentCompanyId,
+        level: fieldsValue.level,
       };
       //分公司列表
       dispatch({
@@ -266,7 +267,6 @@ export default class Subsidiary extends PureComponent {
     form.validateFields((err, fieldsValue) => {
       if (err) return;
       const params = {
-        // member_id: 26,
         page: pagination.current,
         pageSize: pagination.pageSize,
         parentCompanyId: 0,
@@ -285,6 +285,7 @@ export default class Subsidiary extends PureComponent {
         companyName: fieldsValue.companyName,
         sortName: fieldsValue.sortName,
         parentCompanyId: fieldsValue.parentCompanyId,
+        level: fieldsValue.level,
       };
       //分公司列表
       dispatch({
@@ -319,7 +320,6 @@ export default class Subsidiary extends PureComponent {
         remark: '',
       },
     });
-    // this.isChange = false;
     this.setState({
       isChange: false,
     });
@@ -328,8 +328,6 @@ export default class Subsidiary extends PureComponent {
       payload: {},
     }).then(() => {
       const { getUserData } = this.props.basicinfo;
-      console.log('getUserData.err =' + getUserData.err);
-      console.log('getUserData.res.isOperation =' + getUserData.res.isOperation);
       //err=0成功
       if (getUserData.err == 0) {
         switch (getUserData.res.isOperation) {
@@ -350,7 +348,6 @@ export default class Subsidiary extends PureComponent {
   //编辑
   handleEdit = (flag, key) => {
     const { dispatch } = this.props;
-    // this.isChange = true;
     this.setState({
       isChange: true,
     });
@@ -365,7 +362,6 @@ export default class Subsidiary extends PureComponent {
     dispatch({
       type: 'basicinfo/subsidiaryInfo',
       payload: {
-        // member_id: 26,
         branchId: key,
       },
     }).then(() => {
@@ -392,7 +388,6 @@ export default class Subsidiary extends PureComponent {
     if (this.state.isChange === false) {
       //新增
       const payload = {
-        // member_id: 26,
         companyName: fields.companyName,
         sortName: fields.sortName,
         parentCompanyId: fields.parentCompanyId,
@@ -414,7 +409,6 @@ export default class Subsidiary extends PureComponent {
             dispatch({
               type: 'basicinfo/fetch1',
               payload: {
-                // member_id: 26,
                 page: 1,
                 pageSize: 10,
               },
@@ -442,7 +436,6 @@ export default class Subsidiary extends PureComponent {
     } else {
       //编辑
       const payload = {
-        // member_id: 26,
         branchId: this.branchId,
         companyName: fields.companyName,
         sortName: fields.sortName,
@@ -481,7 +474,6 @@ export default class Subsidiary extends PureComponent {
             dispatch({
               type: 'basicinfo/fetch1',
               payload: {
-                // member_id: 26,
                 page: 1,
                 pageSize: 10,
               },
@@ -516,12 +508,10 @@ export default class Subsidiary extends PureComponent {
       subsidiaryBranchList,
       subsidiaryBranchList2,
       subsidiaryBranchList3,
-      // subsidiaryInfo,
-      // getUserData,
+      companyLevel
     } = basicinfo;
     const { count, list: tabledata } = subsidiaryList;
     const { subsidiaryData } = this.state;
-    // console.log(subsidiaryData);
 
     //分公司管理-上级分公司，全部
     const branchOptions = [];
@@ -563,15 +553,28 @@ export default class Subsidiary extends PureComponent {
       });
     }
 
+    //  获取分公司级别
+    const levelOptions = [];
+    if (JSON.stringify(companyLevel) !== '{}') {
+      companyLevel.forEach(item => {
+        levelOptions.push(
+          // <Option key={item.branchId} value={`${item.branchId},${item.branchName}`}>
+          <Option key={item.key} value={item.key}>
+            {item.value}
+          </Option>
+        );
+      });
+    }
+
     //分页属性设置
     const paginationProps = {
       showQuickJumper: true,
       showSizeChanger: true,
-      total: count,
+      total: parseInt(count),
       current: this.state.current,
       showTotal: () => `共计 ${count} 条`,
     };
-    const { selectedRows, modalVisible } = this.state;
+    const { modalVisible } = this.state;
 
     const column = [
       {
@@ -581,6 +584,12 @@ export default class Subsidiary extends PureComponent {
       {
         title: '简称',
         dataIndex: 'branchShortname',
+      },
+      {
+        title: '分公司级别',
+        dataIndex: 'level',
+        render: text =>
+          text === 1 ? <Badge status="1" text="一级" /> : <Badge status="2" text="二级" />,
       },
       {
         title: '上级公司',
@@ -624,23 +633,22 @@ export default class Subsidiary extends PureComponent {
             <div className={styles.tableListForm}>
               <Form onSubmit={this.handleSearch} layout="inline">
                 <Row gutter={{ md: 8, lg: 24, xl: 48 }}>
-                  <Col md={12} sm={24}>
+                  <Col md={8} sm={24}>
                     <FormItem label="分公司/车队名称">
                       {getFieldDecorator('companyName')(<Input placeholder="请输入" />)}
                     </FormItem>
                   </Col>
-                  <Col md={12} sm={24}>
+                  <Col md={8} sm={24}>
                     <FormItem label="简称">
                       {getFieldDecorator('sortName')(<Input placeholder="请输入" />)}
                     </FormItem>
                   </Col>
                 </Row>
                 <Row gutter={{ md: 8, lg: 24, xl: 48 }}>
-                  <Col md={12} sm={24}>
+                  <Col md={8} sm={24}>
                     <FormItem label="上级分公司">
                       {getFieldDecorator('parentCompanyId', {
                         initialValue: -1,
-                        // initialText: '全部',
                       })(
                         <Select placeholder="请选择" style={{ width: '100%' }}>
                           {branchOptions}
@@ -648,7 +656,18 @@ export default class Subsidiary extends PureComponent {
                       )}
                     </FormItem>
                   </Col>
-                  <Col md={12} sm={24}>
+                  <Col md={8} sm={24}>
+                    <FormItem label="分公司级别">
+                      {getFieldDecorator('level', {
+                        initialValue: -1,
+                      })(
+                        <Select placeholder="请选择" style={{ width: '100%' }}>
+                          {levelOptions}
+                        </Select>
+                      )}
+                    </FormItem>
+                  </Col>
+                  <Col md={5} sm={24}>
                     <span style={{ float: 'right', marginBottom: 24 }}>
                       <Button type="primary" htmlType="submit">
                         <Icon type="search" />查询
