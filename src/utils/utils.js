@@ -29,7 +29,7 @@ export function getTimeDistance(type) {
     }
 
     const beginTime = now.getTime() - day * oneDay;
-
+    // return [moment(beginTime), moment(now.getTime() + (oneDay - 1000))];
     return [moment(beginTime), moment(beginTime + (7 * oneDay - 1000))];
   }
 
@@ -49,6 +49,11 @@ export function getTimeDistance(type) {
 
   if (type === 'year') {
     const year = now.getFullYear();
+
+    return [moment(`${year}-01-01 00:00:00`), moment(now)];
+  }
+  if (type === 'lastyear') {
+    const year = now.getFullYear()-1;
 
     return [moment(`${year}-01-01 00:00:00`), moment(`${year}-12-31 23:59:59`)];
   }
@@ -214,4 +219,9 @@ export function isTelNumber(rule, value, callback) {
   } else {
     callback('请输入正确的电话号码！');
   }
+}
+
+//判断数组非空
+export function isArrayIterable(array) {
+  return array != undefined && array.length > 0;
 }

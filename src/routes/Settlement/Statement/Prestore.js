@@ -19,7 +19,7 @@ import PageHeaderLayout from '../../../layouts/PageHeaderLayout';
 import moment from 'moment/moment';
 
 import styles from '../Settlement.less';
-import { getTimeDistance } from '../../../utils/utils';
+import { isArrayIterable } from '../../../utils/utils';
 
 import StatementDetail from './StatementDetail';
 const FormItem = Form.Item;
@@ -379,8 +379,7 @@ export default class Prestore extends PureComponent {
 
     //结算主体
     const ownOptions = [];
-    //遍历前要检查是否存在，不然会报错： Cannot read property 'forEach' of undefined
-    if (ownCompanyList != undefined && ownCompanyList.length > 0) {
+    if (isArrayIterable(ownCompanyList)) {
       ownCompanyList.forEach(item => {
         ownOptions.push(
           <Option key={item.ownId} value={`${item.ownId}`}>
@@ -450,20 +449,23 @@ export default class Prestore extends PureComponent {
 
     const pageList = (
       <div>
-        <Row gutter={24} style={{ marginBottom: '24px' }}>
+        <Row gutter={24} style={{ marginBottom: '15px' }}>
           <Col xs={24}>
             <Card bordered={false}>
               <div className={`${styles.tableList} ${styles.tableListForm}`}>
                 <Form onSubmit={this.handleSearch} layout="inline">
                   <Row gutter={{ md: 8, lg: 24, xl: 48 }}>
-                    <Col md={12} sm={24}>
+                    <Col md={6} sm={24}>
                       <FormItem label="账单编号">
-                        {form.getFieldDecorator('billSn')(<Input placeholder="请输入" />)}
+                        {form.getFieldDecorator('billSn')(<Input placeholder="请输入"/>)}
                       </FormItem>
                     </Col>
-                    <Col md={12} sm={24}>
+                    <Col md={6} sm={24}>
                       <FormItem label="结算主体">
-                        {form.getFieldDecorator('ownCompanyId')(
+                        {form.getFieldDecorator('ownCompanyId',{
+                          initialText: '全部',
+                          initialValue: '全部',
+                        })(
                           <Select
                             showSearch
                             allowClear
@@ -478,9 +480,7 @@ export default class Prestore extends PureComponent {
                         )}
                       </FormItem>
                     </Col>
-                  </Row>
-                  <Row gutter={{ md: 8, lg: 24, xl: 48 }}>
-                    <Col md={12} sm={24}>
+                    <Col md={6} sm={24}>
                       <FormItem label="账单时间">
                       {form.getFieldDecorator('time')(
                         <RangePicker
@@ -491,24 +491,25 @@ export default class Prestore extends PureComponent {
                         />)}
                       </FormItem>
                     </Col>
-                    <Col md={12} sm={24}>
+                    <Col md={6} sm={24}>
                       <span style={{ float: 'right', marginBottom: 24 }}>
                         <Button type="primary" htmlType="submit">
                           <Icon type="search" />查询
                         </Button>
-                        <Button style={{ marginLeft: 8 }} onClick={this.handleFormReset}>
-                          重置
-                        </Button>
                         <Button
                           style={{ marginLeft: 8 }}
                           onClick={this.handlEexport}
-                          type="primary"
+                          type=""
                         >
                           <Icon type="export" />导出
+                        </Button>
+                        <Button style={{ marginLeft: 8 }} onClick={this.handleFormReset}>
+                        <Icon type="sync" />重置
                         </Button>
                       </span>
                     </Col>
                   </Row>
+                  {/* <Row gutter={{ md: 8, lg: 24, xl: 48 }}></Row> */}
                 </Form>
               </div>
             </Card>
@@ -518,7 +519,7 @@ export default class Prestore extends PureComponent {
           <div className={styles.tableList}>
             <Table
               loading={loading}
-              rowSelection={rowSelection}
+              // rowSelection={rowSelection}
               columns={columns}
               // dataSource={creditList.list}
               dataSource={tableData}

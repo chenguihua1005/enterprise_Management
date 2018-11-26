@@ -12,7 +12,31 @@
     }
   }
 }
-
+.headerInfo {
+  position: relative;
+  text-align: center;
+  & > span {
+    color: @text-color-secondary;
+    display: inline-block;
+    font-size: @font-size-base;
+    line-height: 22px;
+    margin-bottom: 4px;
+  }
+  & > p {
+    color: @heading-color;
+    font-size: 24px;
+    line-height: 32px;
+    margin: 0;
+  }
+  & > em {
+    background-color: @border-color-split;
+    position: absolute;
+    height: 56px;
+    width: 1px;
+    top: 0;
+    right: 0;
+  }
+}
 .rankingList {
   margin: 25px 0 0;
   padding: 0;
@@ -39,8 +63,21 @@
     }
     span.active {
       //background-color: @primary-color;
-      background-color: #314659;
+      background-color: #D8534F;
       color: #fff;
+    }
+    span.active2 {
+      //background-color: @primary-color;
+      background-color: #EfAD4E;
+      color: #fff;
+    }
+    span.active3 {
+      //background-color: @primary-color;
+      background-color: #5cbb5c;
+      color: #fff;
+    }
+    span .branchName{
+      font-size: 18px
     }
     span:last-child {
       float: right;

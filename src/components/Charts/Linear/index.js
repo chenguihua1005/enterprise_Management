@@ -34,28 +34,42 @@ export default class LinearChart extends React.Component {
           y7: 0,
         },
       ],
+      placeholder = null,
+      type
     } = this.props;
-    const ds = new DataSet();
-    const dv = ds.createView().source(data);
-    dv.transform({
-        type: 'fold',
-        fields: [titleMap.y1, titleMap.y2,titleMap.y3, titleMap.y4,titleMap.y5, titleMap.y6, titleMap.y7], // 展开字段集
-        key: 'key', // key字段
-        value: 'value', // value字段
+    let dv = null;
+    if (data.length > 0){
+      const ds = new DataSet();
+      dv = ds.createView().source(data);
+      dv.transform({
+          type: 'fold',
+          fields: [titleMap.y1, titleMap.y2,titleMap.y3, titleMap.y4,titleMap.y5, titleMap.y6, titleMap.y7], // 展开字段集
+          key: 'key', // key字段
+          value: 'value', // value字段
       });
-      const tooltip = [
-        'month*value',
-        (month, value) => ({
-          name: month,
-          value: (value*100)+"%",
-        }),
-      ];
-      
+    }
+    
+    const tooltip = [
+      'month*value',
+      (month, value) => ({
+        name: month,
+        value: (value*100)+"%",
+      }),
+    ];
+     const itemTpl= type=="liter"?'<li data-index={index}>'
+     + '<span style="background-color:{color};width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:8px;"></span>'
+     + '{name}: {value}'
+     + ' L</li>' :'<li data-index={index}>'
+     + '<span style="background-color:{color};width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:8px;"></span>'
+     + '{name}: {value}'
+     + ' 元</li>'
+
+    
     return (
       <div className={styles.lineChart}>
         <div>
           {title && <h4>{title}</h4>}
-          <Chart height={height} padding={ 'auto'} data={dv} forceFit>
+          <Chart height={height} padding={'auto'} data={dv} forceFit placeholder={placeholder}>
             <Axis name="month" />
             <Axis name="value" label={{formatter(text,item,index){
               if(targetType&&targetType=="percentage"){
@@ -65,7 +79,7 @@ export default class LinearChart extends React.Component {
               } 
             }}}/>
             <Legend name="key" position="top"/>
-            <Tooltip showTitle={true}  crosshairs={{type:'line'}} />
+            <Tooltip showTitle={true}  crosshairs={{type:'line'}} itemTpl={itemTpl} />
             {/* <Tooltip showTitle={false} crosshairs={false} /> */}
             {/* tooltip={['month*value', (month, value) => {
               if(value){
@@ -76,8 +90,8 @@ export default class LinearChart extends React.Component {
                 };
               }
             }]} */}
-            <Geom type="area" position="month*value" color='key' />
-            <Geom type="line" position="month*value" size={2} color="key"  />
+            <Geom type="area" position="month*value" color='key' shape={"smooth"}/>
+            <Geom type="line" position="month*value" size={2} color="key"  shape={"smooth"} />
           </Chart>
         </div>
       </div>

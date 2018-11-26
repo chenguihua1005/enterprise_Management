@@ -4,7 +4,7 @@ import Debounce from 'lodash-decorators/debounce';
 import Bind from 'lodash-decorators/bind';
 import autoHeight from '../autoHeight';
 import styles from '../index.less';
-
+import DataSet from '@antv/data-set';
 @autoHeight()
 class Bar extends Component {
   state = {
@@ -62,6 +62,8 @@ class Bar extends Component {
       data,
       color = 'rgba(24, 144, 255, 0.85)',
       padding,
+      placeholder = null,
+      type
     } = this.props;
 
     const { autoHideXLabels } = this.state;
@@ -82,7 +84,18 @@ class Bar extends Component {
         value: y,
       }),
     ];
-
+    let dv = null;
+    if (data && data.length > 0) {
+      const ds = new DataSet();
+      dv = ds.createView().source(data);
+    }
+    const itemTpl= type=="orderLiter"?'<li data-index={index}>'
+    + '<span style="background-color:{color};width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:8px;"></span>'
+    + '{name}: {value}'
+    + ' L</li>' :'<li data-index={index}>'
+    + '<span style="background-color:{color};width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:8px;"></span>'
+    + '{name}: {value}'
+    + ' 元</li>'
     return (
       <div className={styles.chart} style={{ height }} ref={this.handleRoot}>
         <div ref={this.handleRef}>
@@ -91,8 +104,9 @@ class Bar extends Component {
             scale={scale}
             height={title ? height - 41 : height}
             forceFit={forceFit}
-            data={data}
+            data={dv}
             padding={padding || 'auto'}
+            placeholder={placeholder}
           >
             <Axis
               name="x"
@@ -101,7 +115,7 @@ class Bar extends Component {
               tickLine={autoHideXLabels ? false : {}}
             />
             <Axis name="y" min={0} />
-            <Tooltip showTitle={false} crosshairs={false} />
+            <Tooltip showTitle={false} crosshairs={false} itemTpl={itemTpl} />
             <Geom type="interval" position="x*y" color={color} tooltip={tooltip} />
           </Chart>
         </div>

@@ -351,7 +351,7 @@ export default class AccountGeneralComponent extends PureComponent {
                   <Icon type="export" />导出
                 </Button>
                 <Button style={{ marginLeft: 8 }} onClick={this.handleFormReset}>
-                  重置
+                  <Icon type="sync" />重置
                 </Button>
               </span>
             </div>
@@ -363,7 +363,7 @@ export default class AccountGeneralComponent extends PureComponent {
 
   render() {
     const { oilfee, loading } = this.props;
-    const { oilAccountInfo, oilAccountInfoList } = oilfee;
+    const { oilAccountInfo, oilAccountInfoList, oilAccountInfoAmount } = oilfee;
     const { count, list: tabledata } = oilAccountInfoList;
     const { companyLevel } = oilAccountInfo; //"companyLevel":["王二乙分公司一","王二乙企业后台集团有限公司"]
     let companyNames = '';
@@ -422,7 +422,7 @@ export default class AccountGeneralComponent extends PureComponent {
             <Card title={oilAccountInfo.accountType}>
               <Meta
                 title={`${companyNames}`}
-                description={`当前可用余额${oilAccountInfo.accountAmount}元`}
+                description={`当前可用余额${oilAccountInfoAmount}元`}
               />
             </Card>
           </Col>

@@ -18,9 +18,8 @@ import {
 } from 'antd';
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
 import styles from './Basicinfo.less';
-import { getTimeDistance } from '../../utils/utils';
+import { isArrayIterable } from '../../utils/utils';
 import { Tree } from 'antd';
-import props from './../../layouts/BlankLayout';
 
 const FormItem = Form.Item;
 const Option = Select.Option;
@@ -54,6 +53,13 @@ const CreateForm = Form.create()(props => {
   }
   const okHandle = () => {
     form.validateFields((err, fieldsValue) => {
+      if(disable){
+        delete err["password"];
+        delete err["repeatPassword"];
+        if(JSON.stringify(err) == "{}"){
+          err=null;
+        }
+      }
       if (err) return;
       handleAdd(fieldsValue, form);
     });
@@ -63,6 +69,49 @@ const CreateForm = Form.create()(props => {
     form.resetFields();
     closeModalVisible(flag);
   };
+  //新增账号弹框 需要设置密码
+  const buildAccount=()=>{
+    return (
+      <div>
+      <Row>
+        <Col span={24}>
+          <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 15 }} label="设密码">
+            {form.getFieldDecorator('password', {
+              // basicinfo: [{ required: true, message: '请输入密码' }],
+              initialValue: userData.password,
+              rules: [
+                {
+                  validator: validateToNextPassword,
+                },
+                { type: 'string', required: true, message: '请输入密码!' },
+              ],
+            })(<Input type="password" placeholder="请输入" />)}
+          </FormItem>
+        </Col>
+        </Row>
+        <Row>
+        <Col span={24}>
+          <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 15 }} label="密码确认">
+            {form.getFieldDecorator('repeatPassword', {
+              // basicinfo: [{ required: true, message: '请输入正确的密码' }],
+              initialValue: userData.repeatPassword,
+              rules: [
+                {
+                  validator: compareToFirstPassword,
+                },
+                {
+                  type: 'string', 
+                  required: true,
+                  message: '请输入正确的密码',
+                },
+              ],
+            })(<Input type="password" placeholder="请输入" onBlur={handleConfirmBlur} />)}
+          </FormItem>
+        </Col>
+      </Row>
+      </div>
+    )
+  }
   //验证手机号
   const checkAccount = (rule, value, callback) => {
     //与表单数据进行关联
@@ -110,58 +159,10 @@ const CreateForm = Form.create()(props => {
       </Tree>
     )
   }
-  const treeData = [
-        {
-            title: '数据总览',
-            key: 'dashboard',
-        },{
-            title: '基础信息管理',
-            key: 'basicinfo',
-            children: [
-                {
-                title: '分公司管理',
-                key: 'subsidiary',
-                },{
-                title: '司机管理',
-                key: 'driver',
-                },{
-                title: '账号管理',
-                key: 'accountadmin',
-                children: [
-                    { title: '角色管理', key: 'role' },
-                    { title: '用户管理', key: 'user' },
-                ],
-            }],
-        },{
-            title: '订单管理',
-            key: 'order',
-        }, {
-            title: '油费管理',
-            key: 'oilfee',
-            children: [
-                { title: '账户管理', 
-                    key: 'oilaccount',
-                    children:[{
-                        title: '总账户',
-                        key: 'general',
-                    },{
-                        title: '分公司账户',
-                        key: 'branch',
-                    },{
-                        title: '司机账户',
-                        key: 'driveraccout',
-                    }]
-                },
-                { title: '油费发放', key: 'provide' },
-            ],
-        },{
-            title: '结算管理',
-            key: 'settlement',
-        }];
   return (
     <Modal
       title={title}
-      width={850}
+      width={700}
       // bodyStyle={{maxHeight:500,autoY:}}
       visible={modalVisible}
       onOk={okHandle}
@@ -169,8 +170,8 @@ const CreateForm = Form.create()(props => {
       destroyOnClose={true}
       maskClosable={false}
     >
-            <Row gutter={{ md: 8, lg: 24, xl: 24 }}>
-        <Col span={12}>
+      <Row gutter={{ md: 8, lg: 24, xl: 24 }}>
+        <Col span={24}>
           <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 15 }} label="用户名">
             {form.getFieldDecorator('userName', {
               initialValue: userData.userName,
@@ -178,7 +179,9 @@ const CreateForm = Form.create()(props => {
             })(<Input placeholder="请输入" disabled={disable} />)}
           </FormItem>
         </Col>
-        <Col span={12}>
+        </Row>
+      <Row>
+        <Col span={24}>
           <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 15 }} label="姓名">
             {form.getFieldDecorator('realName', {
               rules: [{ type: 'string', required: true, message: '请输入姓名!' }],
@@ -188,7 +191,7 @@ const CreateForm = Form.create()(props => {
         </Col>
       </Row>
       <Row>
-        <Col span={12}>
+        <Col span={24}>
                 <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 15 }}  label="手机号">
             {form.getFieldDecorator('mobilePhone', {
               initialValue: userData.mobilePhone,
@@ -208,7 +211,9 @@ const CreateForm = Form.create()(props => {
                   })(<Input placeholder="请输入"/>)}
           </FormItem>
         </Col>
-        <Col span={12}>
+        </Row>
+      <Row>
+        <Col span={24}>
           <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 15 }} label="所属分公司">
             {form.getFieldDecorator('branchId', {
               rules: [{ required: true, message: '请选择所属分公司!' }],
@@ -225,42 +230,12 @@ const CreateForm = Form.create()(props => {
           </FormItem>
         </Col>
       </Row>
-      <Row>
-        <Col span={12}>
-                <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 15 }} label="设密码">
-            {form.getFieldDecorator('password', {
-              // basicinfo: [{ required: true, message: '请输入密码' }],
-              initialValue: userData.password,
-              rules: [
-                {
-                  validator: validateToNextPassword,
-                },
-                { type: 'string', required: true, message: '请输入密码!' },
-              ],
-            })(<Input type="password" placeholder="请输入" />)}
-          </FormItem>
-        </Col>
-        <Col span={12}>
-          <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 15 }} label="密码确认">
-            {form.getFieldDecorator('repeatPassword', {
-              // basicinfo: [{ required: true, message: '请输入正确的密码' }],
-              initialValue: userData.repeatPassword,
-              rules: [
-                {
-                  validator: compareToFirstPassword,
-                },
-                {
-                  required: true,
-                  message: '请输入正确的密码',
-                },
-              ],
-            })(<Input type="password" placeholder="请输入" onBlur={handleConfirmBlur} />)}
-          </FormItem>
-        </Col>
-      </Row>
+      {
+          !disable?buildAccount():null
+      }
       <Row>
         <Col span={24}>
-          <FormItem labelCol={{ span: 2 }} wrapperCol={{ span: 20 }} label="备注">
+          <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 15 }} label="描述">
             {form.getFieldDecorator('remark', {
               basicinfo: [{ required: true, message: 'Please input some description...' }],
               initialValue: userData.remark,
@@ -268,33 +243,31 @@ const CreateForm = Form.create()(props => {
           </FormItem>
         </Col>
       </Row>
-            <Row>
-              <Col span={24}>
-                <FormItem labelCol={{ span: 2 }} wrapperCol={{ span: 20 }} label="角色">
-                      {form.getFieldDecorator('role', {
-                            initialValue: usersRoleSelected,
-                            rules: [{ required: true, message: '请选择角色' }],
-                            // initialText:'超级管理员',
-                        }
-                        )(
-                            <Select onChange={(value, option)=>{renderHaveRoleMenu(value, option)}} style={{ width: '100%' }}>
-                                {/* <Option value="0">管理员</Option>
-                                <Option value="1">调度员</Option> */}
-                                {roleOption}
-                            </Select>
-                        )}
-                    </FormItem>
-              </Col>
-            </Row>
-            <Card>
-              <Row>
-                <Col span={24}>
-                  <FormItem labelCol={{ span: 2 }} wrapperCol={{ span: 20 }} label="角色权限">
-                    {TreeData.length>0?renderShowRole():"该角色未设置权限"}
-                  </FormItem>
-                </Col>
-              </Row>
-            </Card>
+      <Row>
+        <Col span={24}>
+          <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 15 }} label="角色">
+                {form.getFieldDecorator('role', {
+                      initialValue: usersRoleSelected,
+                      rules: [{ required: true, message: '请选择角色' }],
+                      // initialText:'超级管理员',
+                  }
+                  )(
+                      <Select onChange={(value, option)=>{renderHaveRoleMenu(value, option)}} style={{ width: '100%' }}>
+                          {/* <Option value="0">管理员</Option>
+                          <Option value="1">调度员</Option> */}
+                          {roleOption}
+                      </Select>
+                  )}
+              </FormItem>
+        </Col>
+      </Row>
+      <Row>
+        <Col span={24}>
+          <FormItem labelCol={{ span: 5}} wrapperCol={{ span: 15 }} label="角色权限">
+            {TreeData.length>0?renderShowRole():"该角色未设置权限"}
+          </FormItem>
+        </Col>
+      </Row>
     </Modal>
   );
 });
@@ -618,8 +591,8 @@ export default class Driver extends PureComponent {
           realName: fields.realName,
           username: fields.userName,
           branchId: fields.branchId,
-          password: fields.password,
-          repeatPassword: fields.repeatPassword,
+          // password: fields.password,
+          // repeatPassword: fields.repeatPassword,
           remark: fields.remark,
           role:fields.role,
           userId: this.userId,
@@ -804,68 +777,70 @@ export default class Driver extends PureComponent {
       });
     }
   }
-  renderAdvanceForm() {
-    return (
-      <Form layout="inline" onSubmit={this.handleSearch}>
-        <Row gutter={{ md: 8, lg: 24, xl: 48 }}>
-          <Col md={8} sm={24}>
-            <FormItem label="用户名">{<Input placeholder="请输入" />}</FormItem>
-          </Col>
-          <Col md={8} sm={24}>
-            <FormItem label="手机号码">
-              {<Input placeholder="请输入" style={{ width: '100%' }} />}
-            </FormItem>
-          </Col>
-          <Col md={8} sm={24}>
-            <FormItem label="姓名">
-              {<Input placeholder="请输入" style={{ width: '100%' }} />}
-            </FormItem>
-          </Col>
-        </Row>
-        <Row gutter={{ md: 8, lg: 24, xl: 48 }}>
-          <Col md={8} sm={24}>
-            <FormItem label="分公司">
-              {
-                <Select placeholder="请选择" showSearch={true} style={{ width: '100%' }}>
-                  {branchOptions}
-                </Select>
-              }
-            </FormItem>
-          </Col>
-          {/*<Col md={8} sm={24}>*/}
-          {/*<FormItem label="角色">*/}
-          {/*{<Input placeholder="请输入" style={{ width: '100%' }} />}*/}
-          {/*</FormItem>*/}
-          {/*</Col>*/}
-          <Col md={8} sm={24}>
-            <FormItem label="状态">
-              {
-                <Select placeholder="请选择" style={{ width: '100%' }}>
-                  <Option key="0" value="0">
-                    全部
-                  </Option>
-                  <Option key="1" value="1">
-                    停用
-                  </Option>
-                  <Option key="2" value="2">
-                    正常
-                  </Option>
-                </Select>
-              }
-            </FormItem>
-          </Col>
-        </Row>
-        <div style={{ overflow: 'hidden' }}>
-          <span style={{ float: 'right', marginBottom: 24 }}>
-            <Button type="primary" htmlType="submit">
-              <Icon type="search" />查询
-            </Button>
-            <Button style={{ marginLeft: 8 }}>重置</Button>
-          </span>
-        </div>
-      </Form>
-    );
-  }
+  // renderAdvanceForm() {
+  //   return (
+  //     <Form layout="inline" onSubmit={this.handleSearch}>
+  //       <Row gutter={{ md: 8, lg: 24, xl: 48 }}>
+  //         <Col md={8} sm={24}>
+  //           <FormItem label="用户名">{<Input placeholder="请输入" />}</FormItem>
+  //         </Col>
+  //         <Col md={8} sm={24}>
+  //           <FormItem label="手机号码">
+  //             {<Input placeholder="请输入" style={{ width: '100%' }} />}
+  //           </FormItem>
+  //         </Col>
+  //         <Col md={8} sm={24}>
+  //           <FormItem label="姓名">
+  //             {<Input placeholder="请输入" style={{ width: '100%' }} />}
+  //           </FormItem>
+  //         </Col>
+  //       </Row>
+  //       <Row gutter={{ md: 8, lg: 24, xl: 48 }}>
+  //         <Col md={8} sm={24}>
+  //           <FormItem label="分公司">
+  //             {
+  //               <Select placeholder="请选择" showSearch={true} style={{ width: '100%' }}>
+  //                 {branchOptions}
+  //               </Select>
+  //             }
+  //           </FormItem>
+  //         </Col>
+  //         {/*<Col md={8} sm={24}>*/}
+  //         {/*<FormItem label="角色">*/}
+  //         {/*{<Input placeholder="请输入" style={{ width: '100%' }} />}*/}
+  //         {/*</FormItem>*/}
+  //         {/*</Col>*/}
+  //         <Col md={8} sm={24}>
+  //           <FormItem label="状态">
+  //             {
+  //               <Select placeholder="请选择" style={{ width: '100%' }}>
+  //                 <Option key="0" value="0">
+  //                   全部
+  //                 </Option>
+  //                 <Option key="1" value="1">
+  //                   停用
+  //                 </Option>
+  //                 <Option key="2" value="2">
+  //                   正常
+  //                 </Option>
+  //               </Select>
+  //             }
+  //           </FormItem>
+  //         </Col>
+  //       </Row>
+  //       <div style={{ overflow: 'hidden' }}>
+  //         <span style={{ float: 'right'}}>
+  //           <Button type="primary" htmlType="submit">
+  //             <Icon type="search" />查询
+  //           </Button>
+  //           <Button style={{ marginLeft: 8 }}>
+  //           <Icon type="sync" />重置
+  //           </Button>
+  //         </span>
+  //       </div>
+  //     </Form>
+  //   );
+  // }
   renderTreeData=(data,target,hasChild)=>{
     if(data&&data.length>0){
       for (var i in data) {
@@ -954,6 +929,31 @@ renderHaveRoleMenu=(arId)=>{
     });
   })
 }
+//有全部权限显示重置密码
+authorityForm=()=>{
+  return (
+      <div className={styles.tableListOperator}>
+            <Button icon="plus" type="primary" onClick={() => this.setModalVisible(true)}>
+              新增
+            </Button>
+            <Button type="primary" onClick={this.showConfirm}>
+              重置密码
+            </Button>
+          </div>
+  )
+}
+//无全部权限显示重置密码
+noAuthorityForm=()=>{
+  return (
+      <div className={styles.tableListOperator}>
+            <Button icon="plus" type="primary" onClick={() => this.setModalVisible(true)}>
+              新增
+            </Button>
+        </div>
+  )
+}
+
+
   render() {
     const { basicinfo, loading, form } = this.props;
     const { getFieldDecorator } = form;
@@ -964,8 +964,7 @@ renderHaveRoleMenu=(arId)=>{
     //所属分公司
     const branchOptions = [];
     const editBranchOptions = [];
-    //遍历前要检查是否存在，不然会报错： Cannot read property 'forEach' of undefined
-    if (branchCompany != undefined && branchCompany.length > 0) {
+    if (isArrayIterable(branchCompany)) {
       branchCompany.forEach(item => {
         branchOptions.push(
           <Option key={item.companyBranchId} value={item.companyBranchId}>
@@ -981,6 +980,7 @@ renderHaveRoleMenu=(arId)=>{
         }
       });
     }
+    const arr = JSON.parse(window.localStorage.getItem('loginRole'))
     //分页属性设置
     const paginationProps = {
       showQuickJumper: true,
@@ -1106,7 +1106,10 @@ renderHaveRoleMenu=(arId)=>{
                 <Row gutter={{ md: 8, lg: 24, xl: 48 }}>
                   <Col md={8} sm={24}>
                     <FormItem label="分公司">
-                      {getFieldDecorator('branchId')(
+                      {getFieldDecorator('branchId',{
+                          initialValue:'全部',
+                          initialText:'全部',
+                      })(
                         <Select placeholder="请选择" showSearch={true} style={{ width: '100%' }}>
                           {branchOptions}
                         </Select>
@@ -1120,19 +1123,6 @@ renderHaveRoleMenu=(arId)=>{
                   {/*</Col>*/}
                   <Col md={8} sm={24}>
                     <FormItem label="状态">
-                      {/* {getFieldDecorator('status')(
-                        <Select placeholder="请选择" style={{ width: '100%' }}>
-                          <Option key="0" value="0">
-                            全部
-                          </Option>
-                          <Option key="1" value="1">
-                            停用
-                          </Option>
-                          <Option key="2" value="2">
-                            正常
-                          </Option>
-                        </Select>
-                      )} */}
                        {getFieldDecorator('status', {
                               initialValue:'0',
                               initialText:'全部',
@@ -1149,11 +1139,12 @@ renderHaveRoleMenu=(arId)=>{
                   <Col md={8} sm={24}>
                   <FormItem label="角色">
                     {getFieldDecorator('roleId', {
-                              initialValue:-1,
+                              // initialValue:-1,
+                              initialValue:'全部',
                               initialText:'全部',
                           }
                           )(
-                            <Select showSearch={true} style={{ width: '100%' }}>
+                            <Select showSearch={true} style={{ width: '100%' }} notFoundContent='loading'>
                              {deafultroleList}
                            </Select>
                       )}
@@ -1166,7 +1157,7 @@ renderHaveRoleMenu=(arId)=>{
                       <Icon type="search" />查询
                     </Button>
                     <Button style={{ marginLeft: 8 }} onClick={this.handleFormReset}>
-                      重置
+                      <Icon type="sync" />重置
                     </Button>
                     </span>
                   </div>
@@ -1174,26 +1165,30 @@ renderHaveRoleMenu=(arId)=>{
             </div>
           </Card>
           <Row style={{ marginTop: 20 }}>
-            <Card>
-              <div className={styles.tableListOperator}>
-                <Button icon="plus" type="primary" onClick={() => this.setModalVisible(true)}>
-                  新增
-                </Button>
-                <Button type="primary" onClick={this.showConfirm}>
-                  重置密码
-                </Button>
-              </div>
-              <div>
-                <Table
-                  rowSelection={rowSelection}
-                  pagination={paginationProps}
-                  loading={loading}
-                  columns={column}
-                  dataSource={tableData}
-                  onChange={this.handleStandardTableChange}
-                />
-              </div>
-            </Card>
+          <Card>
+            {/* {
+              Array.isArray(arr) && arr.length > 0 ? this.noAuthorityForm() : this.authorityForm()
+            } */}
+            <div className={styles.tableListOperator}>
+              <Button icon="plus" type="primary" onClick={() => this.setModalVisible(true)}>
+                新增
+              </Button>
+              <Button type="primary" onClick={this.showConfirm}>
+                重置密码
+              </Button>
+            </div>
+            <div>
+              <Table
+                // rowSelection={Array.isArray(arr) && arr.length > 0?null:rowSelection}
+                rowSelection={rowSelection}
+                pagination={paginationProps}
+                loading={loading}
+                columns={column}
+                dataSource={tableData}
+                onChange={this.handleStandardTableChange}
+              />
+            </div>
+          </Card>
           </Row>
         </div>
         <CreateForm {...parentMethods} modalVisible={modalVisible} />

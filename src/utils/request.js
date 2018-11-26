@@ -2,6 +2,7 @@ import fetch from 'dva/fetch';
 import { notification } from 'antd';
 import { routerRedux } from 'dva/router';
 import store from '../index';
+import { message } from 'antd';
 
 const codeMessage = {
   200: '服务器成功返回请求的数据。',
@@ -89,6 +90,9 @@ export default function request(url, options) {
       if (status === 401 || status === 403) {
         //401 403统一做退出登录
         window.localStorage.removeItem('accessToken');
+        // window.history.replaceState(null, 'login', '#/user/login');
+        // window.history.go(0);
+        // alert("您的登录失效了，需要重新登录")
         dispatch({
           type: 'login/logout2',
         });

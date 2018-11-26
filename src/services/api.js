@@ -31,6 +31,22 @@ export async function queryBasicinfoValid(params) {
   });
 }
 
+//用户修改密码
+export async function queryUpdatePassword(params) {
+  return request(baseUrl + 'user/updatePassword', {
+    method: 'POST',
+    body: params,
+  });
+}
+
+//公共树
+export async function queryCompanyTree(params) {
+  return request(baseUrl + 'common/GetCompanyTree', {
+    method: 'POST',
+    body: params,
+  });
+}
+
 //------------1数据总览---------------
 // 基础信息
 export async function queryStatisticsInfo(params) {
@@ -505,5 +521,36 @@ export async function queryImportDriverInfo(params) {
     headers:{
       "Content-Type": "multipart/form-data"
     } 
+  });
+}
+
+//------------数据报表--------------
+
+// 日报表查询
+export async function queryDailySheetLoad(params) {
+  return request(baseUrl + 'StatReport/DayReport', {
+    method: 'POST',
+    body: params,
+  });
+}
+// 日报表导出
+export async function queryDailySheetDownLoad(params) {
+  return request(baseUrl + 'StatReport/DayReportDown', {
+    method: 'POST',
+    body: params,
+  });
+}
+// 月报表查询
+export async function queryMonthlySheetLoad(params) {
+  return request(baseUrl + 'StatReport/MonthReport', {
+    method: 'POST',
+    body: params,
+  });
+}
+// 月报表导出
+export async function queryMonthlySheetDownLoad(params) {
+  return request(baseUrl + 'StatReport/MonthReportDown', {
+    method: 'POST',
+    body: params,
   });
 }

@@ -19,7 +19,7 @@ import {
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
 import styles from './OrderList.less';
 import moment from 'moment/moment';
-import { getTimeDistance } from '../../utils/utils';
+import { isArrayIterable } from '../../utils/utils';
 
 const FormItem = Form.Item;
 const Option = Select.Option;
@@ -34,12 +34,10 @@ const CreateForm = Form.create()(props => {
       title="订单详情"
       width={1000}
       visible={modalVisible}
+      maskClosable={false}
       onCancel={() => setModalVisible()}
-      footer={[
-        <Button key="关闭" type="primary" onClick={() => setModalVisible()}>
-          关闭
-        </Button>,
-      ]}
+      footer={null}
+      bodyStyle={{paddingBottom:55}}
     >
       <Row className={styles.order}>
         <Col span={24}>
@@ -58,12 +56,12 @@ const CreateForm = Form.create()(props => {
             <span>状态: {orderStatus}</span>
           </Col>
         </Row>
-        <Row className={styles.p} span={24}>
-          <Col>
+        <div className={styles.p} >
+          
             <p>订单明细</p>
-          </Col>
-        </Row>
-        <Row className={styles.orderRow}>
+          
+        </div>
+        <Row className={styles.orderRow2}>
           <Col span={8}>
             <span>司机手机号: {orderDetails.driverPhone}</span>
           </Col>
@@ -74,7 +72,7 @@ const CreateForm = Form.create()(props => {
             <span>分公司名称: {orderDetails.branchName}</span>
           </Col>
         </Row>
-        <Row className={styles.orderRow}>
+        <Row className={styles.orderRow2}>
           <Col span={8}>
             <span>支付类型: {orderDetails.payType}</span>
           </Col>
@@ -85,7 +83,7 @@ const CreateForm = Form.create()(props => {
             <span>找油单价:{orderDetails.unitPrice}元/升</span>
           </Col>
         </Row>
-        <Row className={styles.orderRow}>
+        <Row className={styles.orderRow2}>
           <Col span={8}>
             <span>加油升量: {orderDetails.litres}L</span>
           </Col>
@@ -96,7 +94,7 @@ const CreateForm = Form.create()(props => {
             <span>实付金额:{orderDetails.payAmount}元</span>
           </Col>
         </Row>
-        <Row className={styles.orderRow}>
+        <Row className={styles.orderRow3}>
           <Col span={8}>
             <span>加油网点: {orderDetails.skidName}</span>
           </Col>
@@ -455,8 +453,7 @@ export default class OrderList extends PureComponent {
     const orderStatus = this.getOrderDetails(orderDetails.orderStatus);
     //网点
     const SkidOptions = [];
-    //遍历前要检查是否存在，不然会报错： Cannot read property 'forEach' of undefined
-    if (skidList != undefined && skidList.length > 0) {
+    if (isArrayIterable(skidList)) {
       skidList.forEach(item => {
         SkidOptions.push(
           <Option key={item.key} value={`${item.key}`}>
@@ -468,8 +465,7 @@ export default class OrderList extends PureComponent {
 
     //所属分公司
     const branchOptions = [];
-    //遍历前要检查是否存在，不然会报错： Cannot read property 'forEach' of undefined
-    if (branchCompany != undefined && branchCompany.length > 0) {
+    if (isArrayIterable(branchCompany)) {
       branchCompany.forEach(item => {
         branchOptions.push(
           <Option key={item.key} value={`${item.key}`}>
@@ -481,8 +477,7 @@ export default class OrderList extends PureComponent {
 
     // 用油类型
     const goodOptions = [];
-    //遍历前要检查是否存在，不然会报错： Cannot read property 'forEach' of undefined
-    if (GoodsCompany != undefined && GoodsCompany.length > 0) {
+    if (isArrayIterable(GoodsCompany)) {
       GoodsCompany.forEach(item => {
         goodOptions.push(
           <Option key={item.key} value={`${item.key}`}>
@@ -493,8 +488,7 @@ export default class OrderList extends PureComponent {
     }
     // 城市
     const regionOptions = [];
-    //遍历前要检查是否存在，不然会报错： Cannot read property 'forEach' of undefined
-    if (regionCompany != undefined && regionCompany.length > 0) {
+    if (isArrayIterable(regionCompany)) {
       regionCompany.forEach(item => {
         regionOptions.push(
           <Option key={item.key} value={`${item.key}`}>
@@ -505,8 +499,7 @@ export default class OrderList extends PureComponent {
     }
     // 地区
     const cityOptions = [];
-    //遍历前要检查是否存在，不然会报错： Cannot read property 'forEach' of undefined
-    if (cityCompany != undefined && cityCompany.length > 0) {
+    if (isArrayIterable(cityCompany)) {
       cityCompany.forEach(item => {
         cityOptions.push(
           <Option key={item.key} value={`${item.key}`}>
@@ -588,26 +581,24 @@ export default class OrderList extends PureComponent {
       {
         title: '操作',
         fixed: 'right',
-        width: 150,
         render: record => (
-          <Fragment>
-            <Button type="primary" onClick={() => this.orderDetails(record.orderSn)}>
-              查看详情
-            </Button>
-          </Fragment>
+          <Icon type="exception" style={{ color:'#1890ff',fontSize:'16'}} title="查看详情" onClick={() => this.orderDetails(record.orderSn)}/>
         ),
       },
     ];
     return (
       <PageHeaderLayout>
         <div className={styles.tableList}>
-          <Card bordered={false}>
+          <Card bordered={false} style={{marginTop:18}}>
             <div className={styles.tableListForm}>
               <Form layout="inline" onSubmit={this.handleSearch}>
                 <Row gutter={{ md: 8, lg: 24, xl: 48 }}>
                   <Col md={8} sm={24}>
                     <FormItem label="加油网点">
-                      {getFieldDecorator('ossId')(
+                      {getFieldDecorator('ossId',{
+                        initialText: '全部',
+                        initialValue: '全部',
+                      })(
                         <Select
                           showSearch
                           allowClear
@@ -623,8 +614,11 @@ export default class OrderList extends PureComponent {
                     </FormItem>
                   </Col>
                   <Col md={8} sm={24}>
-                    <FormItem label="分公司名称">
-                      {getFieldDecorator('branchId')(
+                    <FormItem label="分&nbsp;公&nbsp;司&nbsp;">
+                      {getFieldDecorator('branchId',{
+                        initialText: '全部',
+                        initialValue: '全部',
+                      })(
                         <Select
                           showSearch
                           allowClear
@@ -641,7 +635,10 @@ export default class OrderList extends PureComponent {
                   </Col>
                   <Col md={8} sm={24}>
                     <FormItem label="支付类型">
-                      {getFieldDecorator('payType')(
+                      {getFieldDecorator('payType',{
+                        initialText: '全部',
+                        initialValue: '全部',
+                      })(
                         <Select allowClear placeholder="支付类型">
                           <Option value="0">全部</Option>
                           <Option value="1">余额</Option>
@@ -657,7 +654,10 @@ export default class OrderList extends PureComponent {
                 <Row gutter={{ md: 8, lg: 24, xl: 48 }}>
                   <Col md={8} sm={24}>
                     <FormItem label="用油类型">
-                      {getFieldDecorator('proSku')(
+                      {getFieldDecorator('proSku',{
+                        initialText: '全部',
+                        initialValue: '全部',
+                      })(
                         <Select allowClear placeholder="用油类型" style={{ width: '100%' }}>
                           {goodOptions}
                         </Select>
@@ -665,8 +665,11 @@ export default class OrderList extends PureComponent {
                     </FormItem>
                   </Col>
                   <Col md={8} sm={24}>
-                    <FormItem label="城市">
-                      {getFieldDecorator('provinceId')(
+                    <FormItem label="加油城市">
+                      {getFieldDecorator('provinceId',{
+                        initialText: '全部',
+                        initialValue: '全部',
+                      })(
                         <Select
                           allowClear
                           placeholder="城市"
@@ -679,7 +682,7 @@ export default class OrderList extends PureComponent {
                     </FormItem>
                   </Col>
                   <Col md={8} sm={24}>
-                    <FormItem label="地区">
+                    <FormItem label="加油地区">
                       {getFieldDecorator('cityId')(
                         <Select
                           allowClear
@@ -695,8 +698,11 @@ export default class OrderList extends PureComponent {
                 </Row>
                 <Row gutter={{ md: 8, lg: 24, xl: 48 }}>
                   <Col md={8} sm={24}>
-                    <FormItem label="状态">
-                      {getFieldDecorator('status')(
+                    <FormItem label="加油状态">
+                      {getFieldDecorator('status',{
+                        initialText: '全部',
+                        initialValue: '全部',
+                      })(
                         <Select allowClear placeholder="请选择状态" style={{ width: '100%' }}>
                           <Option value="">全部</Option>
                           <Option value="1">待付款</Option>
@@ -709,7 +715,7 @@ export default class OrderList extends PureComponent {
                     </FormItem>
                   </Col>
                   <Col md={8} sm={24}>
-                    <FormItem label="时间">
+                    <FormItem label="加油时间">
                     {getFieldDecorator('time')(
                       <RangePicker
                         // allowClear
@@ -722,7 +728,7 @@ export default class OrderList extends PureComponent {
                     </FormItem>
                   </Col>
                   <Col md={8} sm={24}>
-                    <FormItem label="关键词">
+                    <FormItem label="关&nbsp;键&nbsp;词&nbsp;">
                       {getFieldDecorator('likeVal')(
                         <Input placeholder="请输入订单编号/手机号/车牌号" />
                       )}
@@ -730,27 +736,28 @@ export default class OrderList extends PureComponent {
                   </Col>
                 </Row>
                 <div style={{ overflow: 'hidden' }}>
-                  <span style={{ float: 'right', marginBottom: 24 }}>
+                  <span style={{ float: 'right'}}>
                     <Button type="primary" htmlType="submit">
                       <Icon type="search" />查询
                     </Button>
-                    <Button style={{ marginLeft: 8 }} onClick={this.handleFormReset}>
-                      重置
-                    </Button>
-                    <Button style={{ marginLeft: 8 }} type="primary" onClick={this.handleExport}>
+                    <Button style={{ marginLeft: 8 }} type="" onClick={this.handleExport}>
                       <Icon type="export" />导出
                     </Button>
+                    <Button style={{ marginLeft: 8 }} onClick={this.handleFormReset}>
+                      <Icon type="sync" />重置
+                    </Button>
+                    
                   </span>
                 </div>
               </Form>
             </div>
           </Card>
-          <Row style={{ marginTop: 20 }}>
+          <Row style={{ marginTop: 15 }}>
             <Card>
               <div>
                 <Table
                   pagination={paginationProps}
-                  rowSelection={rowSelection}
+                  // rowSelection={rowSelection}
                   loading={loading}
                   columns={column}
                   dataSource={tableData}

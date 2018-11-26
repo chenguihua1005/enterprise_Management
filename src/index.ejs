@@ -21,13 +21,11 @@
           console.log('初始化完成');
           let accessToken=window.localStorage.getItem('accessToken');
           if(accessToken){
-            // console.log('登录',window.ud);
             window.ud.init();
-            // window.ud.showPanel();
-          }else{
-            console.log('退出',window.ud);
-            // window.ud.hidePanel();
           }
+          // else{
+          //   console.log('退出',window.ud);
+          // }
         }
     });
     </script>

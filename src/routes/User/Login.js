@@ -37,17 +37,25 @@ export default class LoginPage extends Component {
     })
     .then(() => {
       const { getVerifyImg } = this.props.login;
-      switch (getVerifyImg.err) {
-        //err=0成功
-        case 0:
-          this.setState({
-            codeImg:getVerifyImg.res.base64img,
-            imgToken:getVerifyImg.res.imgToken,
-          });
-          break;
-        default:
-          message.warning(getVerifyImg.msg);
+      if(getVerifyImg.err==0){
+        this.setState({
+          codeImg:getVerifyImg.res.base64img,
+          imgToken:getVerifyImg.res.imgToken,
+        });
+      }else if(JSON.stringify(getVerifyImg) != "{}"){
+        message.warning(getVerifyImg.msg);
       }
+      // switch (getVerifyImg.err) {
+      //   //err=0成功
+      //   case 0:
+      //     this.setState({
+      //       codeImg:getVerifyImg.res.base64img,
+      //       imgToken:getVerifyImg.res.imgToken,
+      //     });
+      //     break;
+      //   default:
+      //     message.warning(getVerifyImg.msg);
+      // }
     });
     
   }

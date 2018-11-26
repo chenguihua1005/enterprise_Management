@@ -24,7 +24,7 @@ import OilFeeRecycleSelect from './components/OilFeeRecycleSelect';
 import OilFeeGrant from './components/OilFeeGrant';
 import styles from './OilFee.less';
 import moment from 'moment';
-import { getTimeDistance } from '../../utils/utils';
+import { getTimeDistance, isArrayIterable } from '../../utils/utils';
 const { RangePicker } = DatePicker;
 const FormItem = Form.Item;
 const { Option } = Select;
@@ -94,7 +94,7 @@ const CreateForm2 = Form.create()(props => {
 @connect(({ oilfee, basicinfo, loading }) => ({
   oilfee,
   basicinfo,
-  loading: loading.effects['oilfee/fetch4Detail', 'oilfee/fetch4DetailExport'],
+  loading: loading.effects[('oilfee/fetch4Detail', 'oilfee/fetch4DetailExport')],
 }))
 @Form.create()
 export default class ProvideComponent extends PureComponent {
@@ -121,13 +121,13 @@ export default class ProvideComponent extends PureComponent {
     //总账户详情
     dispatch({
       type: 'oilfee/fetch1',
-      payload: {  },
+      payload: {},
     });
 
     //分公司名称
     dispatch({
       type: 'oilfee/fetchBranch',
-      payload: {  },
+      payload: {},
     });
 
     //油费发放详情
@@ -250,7 +250,7 @@ export default class ProvideComponent extends PureComponent {
           ...params,
           commonField: fieldsValue.commonField,
           grantType: fieldsValue.grantType,
-          branchId: fieldsValue.branchId,
+          branchId: fieldsValue.branchId || 0,
         };
         //油费发放详情
         dispatch({
@@ -478,7 +478,7 @@ export default class ProvideComponent extends PureComponent {
       //总账户详情
       dispatch({
         type: 'oilfee/fetch1',
-        payload: {  },
+        payload: {},
       });
       //油费发放详情
       dispatch({
@@ -634,8 +634,7 @@ export default class ProvideComponent extends PureComponent {
 
     //所属分公司
     const branchOptions = [];
-    //遍历前要检查是否存在，不然会报错： Cannot read property 'forEach' of undefined
-    if (branchCompany != undefined && branchCompany.length > 0) {
+    if (isArrayIterable(branchCompany)) {
       branchCompany.forEach(item => {
         branchOptions.push(
           <Option key={item.companyBranchId} value={item.companyBranchId}>
@@ -646,8 +645,7 @@ export default class ProvideComponent extends PureComponent {
     }
 
     const propsUpload = {
-      action: '//test.api-bms.51zhaoyou.com/bms/oilAccount/OABatchDistribute',
-      // action: '//jsonplaceholder.typicode.com/posts/',
+      action: baseUrl + 'oilAccount/OABatchDistribute',
       accept: '.xlsx',
       onRemove: file => {
         this.setState(({ fileList }) => {
@@ -710,6 +708,10 @@ export default class ProvideComponent extends PureComponent {
         title: '金额',
         dataIndex: 'amount',
       },
+      {
+        title: '操作人',
+        dataIndex: 'operateUser',
+      },
     ];
 
     return (
@@ -726,21 +728,20 @@ export default class ProvideComponent extends PureComponent {
               </Col>
               <Col span={3}>
                 <Button type="primary" onClick={() => this.handleProvide()}>
-                  <Icon type="plus" />发放
+                  <Icon type="plus" />油费发放
                 </Button>
               </Col>
               <Col span={3}>
-                <Button type="primary" onClick={() => this.setImportmodal(true)}>
+                <Button onClick={() => this.setImportmodal(true)}>
                   <Icon type="upload" />批量发放
                 </Button>
               </Col>
               <Col span={3}>
                 <Button
-                  type="primary"
                   icon="delete"
                   onClick={() => this.handleRecycleModalVisible(true)}
                 >
-                  回收
+                  油费回收
                 </Button>
               </Col>
             </Card>
@@ -780,7 +781,7 @@ export default class ProvideComponent extends PureComponent {
                         <Col md={12} sm={24}>
                           <FormItem label="分公司名称">
                             {getFieldDecorator('branchId', {
-                              initialValue: 0,
+                              initialValue: '全部',
                             })(
                               <Select placeholder="请选择" style={{ width: '100%' }}>
                                 {branchOptions}
@@ -804,15 +805,11 @@ export default class ProvideComponent extends PureComponent {
                           <Button type="primary" htmlType="submit">
                             <Icon type="search" />查询
                           </Button>
-                          <Button style={{ marginLeft: 8 }} onClick={this.handleFormReset}>
-                            重置
-                          </Button>
-                          <Button
-                            type="primary"
-                            style={{ marginLeft: 8 }}
-                            onClick={this.handleExport}
-                          >
+                          <Button style={{ marginLeft: 8 }} onClick={this.handleExport}>
                             <Icon type="export" />导出
+                          </Button>
+                          <Button style={{ marginLeft: 8 }} onClick={this.handleFormReset}>
+                            <Icon type="sync" />重置
                           </Button>
                         </span>
                       </div>
@@ -845,7 +842,7 @@ export default class ProvideComponent extends PureComponent {
               </Card>
             </TabPane>
             {/* 新增发放油费 */}
-            <TabPane tab="油费发放" key="add">
+            <TabPane tab="发放计划" key="add">
               <Card bordered={false}>
                 <OilFeeGrant activeKey={this.activeKeyChange} />
               </Card>

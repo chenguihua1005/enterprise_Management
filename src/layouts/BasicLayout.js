@@ -1,6 +1,7 @@
 import React, { Fragment } from 'react';
 import PropTypes from 'prop-types';
-import { Layout, Icon, message } from 'antd';
+import { Layout, Icon, message ,Form,Modal,Card,Input,Select ,Button,Row,Col} from 'antd';
+import {Field} from 'components/Charts';
 import DocumentTitle from 'react-document-title';
 import { connect } from 'dva';
 import { Route, Redirect, Switch, routerRedux } from 'dva/router';
@@ -15,6 +16,7 @@ import NotFound from '../routes/Exception/404';
 import { getRoutes } from '../utils/utils';
 import Authorized from '../utils/Authorized';
 import { getMenuData } from '../common/menu';
+import styles from './BasicLayout.less';
 import sha1 from 'crypto-js/sha1';
 // import logo from '../assets/logo.svg';
 import logo from '../assets/logo.png';
@@ -22,7 +24,7 @@ import { reloadAuthorized } from '../utils/Authorized';
 
 const { Content, Header, Footer } = Layout;
 const { AuthorizedRoute, check } = Authorized;
-
+const FormItem = Form.Item;
 /**
  * 根据菜单取得重定向地址.
  */
@@ -41,7 +43,176 @@ const getRedirect = item => {
   }
 };
 getMenuData().forEach(getRedirect);
-
+const CreateForm = Form.create()(props => {
+  const { 
+    modalVisible, 
+    form, 
+    loginOut,
+    handleMotifyPwd, 
+    handleModalVisible,
+    handleResetPasswordBlur,
+    confirmDirty,
+    type} = props;
+  const {getFieldDecorator}=form;
+  const okHandle = () => {
+    console.log('强制修改密码');
+    form.validateFields((err, fieldsValue) => {
+      if (err) return;
+      form.resetFields();
+      handleMotifyPwd(fieldsValue);
+    });
+    // handleModalVisible();
+  };
+  const cancelHandle=()=>{
+    handleModalVisible();
+  }
+  const checkPassword=(rule, value, callback)=>{
+      var pattern = /^(?![a-zA-Z]+$)(?![a-z\d]+$)(?![a-z!@#\$%]+$)(?![A-Z\d]+$)(?![A-Z!@#\$%]+$)(?![\d!@#\$%]+$)[a-zA-Z\d!@#\$%]+$/;
+      if (value&&value.length < 6) {
+        callback('密码长度小于6位！')
+      } else if (value&&value.length > 20) {
+        callback('密码长度大于20位！')
+      } else if(!value){
+        callback()
+      }
+      // else if (!(pattern.test(value))) {
+      //   callback('至少包括数字，英文字母，大写字母，特殊符号4类中的3类！')
+      // }
+  }
+  const handleConfirmPassword = (rule, value, callback) => {
+    const { getFieldValue } = form
+    if (value && value !== getFieldValue('password')) {
+        callback('两次输入不一致！')
+    }
+    callback()
+  }
+  const validateToNextPassword = (rule, value, callback) => {
+    // const form = this.props.form;
+    if (value && confirmDirty) {
+      form.validateFields(['repeatPassword'], { force: true });
+    }
+    callback();
+  };
+  const handleConfirmBlur = e => {
+    const value = e.target.value;
+    handleResetPasswordBlur(value);
+  };
+  const initPwd=()=>{
+    return (
+      <FormItem
+      label="输入原密码"
+      labelCol={{ span: 5 }}
+      wrapperCol={{ span: 12 }}
+      >
+      {getFieldDecorator('oldPassword', {
+          rules: [{ 
+            required: true,message: '请输入原密码'},{
+            // validator: checkPassword
+            }]
+      })(
+          <Input type="password" placeholder="原密码" />
+      )}
+      </FormItem>
+    )
+  }
+  const styleTitle=()=>{
+    return (
+      <div style={{textAlign:"center"}}>
+        <span>为了您的账户安全，请先修改密码！</span>
+      </div>
+    )
+  }
+ 
+  return (
+    <Modal
+      title={type != 0 ?"修改密码":styleTitle()}
+      width={600}
+      visible={modalVisible}
+      onOk={okHandle}
+      onCancel={cancelHandle} 
+      destroyOnClose={true}
+      maskClosable={false}
+      closable={type != 0 ?true:false}
+      footer={type != 0 ?(<div><Button  onClick={() => cancelHandle()}>取消</Button><Button type="primary" onClick={() => okHandle()}>确定</Button></div>):<Button type="primary" onClick={() => okHandle()}>确定</Button>}
+    >
+    {/* <Card style={{border:0}}>
+      <Row gutter={{ md: 8, lg: 24, xl: 24 }} style={{marginBottom:20}}>
+          <Col md={12} sm={24}>
+              <Field label="用户名称:" value={window.localStorage.getItem('currentUsername')}/>
+          </Col>
+      </Row>
+      <Row>
+          <Col md={12} sm={24}>
+              <Field label="手机号码:" value={window.localStorage.getItem('mobilePhone')}/>
+          </Col>
+       </Row>
+    </Card> */}
+     <Card style={{border:0}}>
+      <div className={styles.tableList}>
+        <div className={styles.tableListForm}>
+          <Form onSubmit={this.handleSubmit}>
+              <FormItem
+                label="用户名"
+                labelCol={{ span: 5 }}
+                wrapperCol={{ span: 12 }}
+                style={{marginLeft:9}}
+              >
+                <Field value={window.localStorage.getItem('currentUsername')}/>
+              </FormItem>
+              <FormItem
+                label="手机号"
+                labelCol={{ span: 5 }}
+                wrapperCol={{ span: 12 }}
+                style={{marginLeft:9}}
+              >
+                <Field value={window.localStorage.getItem('mobilePhone')}/>
+              </FormItem>
+              {//主动修改 初始密码必填
+                type != 0 ? initPwd() : null
+              }
+              <FormItem
+              label="重设新密码"
+              labelCol={{ span: 5 }}
+              wrapperCol={{ span: 12 }}
+              >
+              {getFieldDecorator('password', {
+                  rules: [
+                    {
+                    validator: validateToNextPassword,
+                  },
+                  { 
+                    required: true,
+                    message: '密码长度必须是6-20位，数字或字母!',
+                    pattern:/^[0-9a-zA-Z]{6,20}$/
+                    // pattern:/^(?=.*[a-zA-Z])(?=.*\d).{6,20}$/
+                   }
+                  ]
+              })(
+                  <Input type="password" placeholder="6-20位数字或字母或数字字母组合" />
+              )}
+              </FormItem>
+              <FormItem
+              label="确认新密码"
+              labelCol={{ span: 5 }}
+              wrapperCol={{ span: 12 }}
+              >
+              {getFieldDecorator('repeatPassword', {
+                  min:6,
+                  max: 20,
+                  rules: [{ required: true,message: '请输入新密码'},{
+                    validator: handleConfirmPassword
+                  }],
+              })(
+                  <Input type="password"  placeholder="6-20位数字或字母或数字字母组合" onBlur={handleConfirmBlur}/>
+              )}
+              </FormItem>
+          </Form>
+        </div>
+      </div>
+      </Card>
+    </Modal>
+  );
+});
 /**
  * 获取面包屑映射
  * @param {Object} menuData 菜单配置
@@ -90,7 +261,10 @@ let isMobile;
 enquireScreen(b => {
   isMobile = b;
 });
-
+@connect(({ login }) => ({
+  login
+}))
+@Form.create()
 class BasicLayout extends React.PureComponent {
   static childContextTypes = {
     location: PropTypes.object,
@@ -99,8 +273,46 @@ class BasicLayout extends React.PureComponent {
 
   state = {
     isMobile,
+    modalVisible:false,
+    confirmDirty:false,
+    type:JSON.parse(window.localStorage.getItem('isReset')) //默认的状态 0未修改 1已修改 3老用户
   };
 
+  //强制修改登录密码弹框
+  handleModalVisible = (flag) => {
+    this.setState({
+      modalVisible: !!flag,
+    });
+  };
+  //重置密码成功后 强制登出
+  loginOut = () => {
+    this.props.dispatch({
+      type: 'login/logout',
+    }).then(() => {
+      message.success("密码修改成功，请重新登录!");
+    })
+  }
+  //修改密码接口
+  handleMotifyPwd = (fields) => {
+    const {type}=this.state;
+    let updataType=type == 0 ? 1 : 2;
+    const values = Object.assign(fields,{type:updataType});
+    const {dispatch} = this.props;
+    dispatch({
+      type: 'login/fetchUpdatePwd',
+      payload: values
+    }).then(()=>{
+      const { updatePwdResponse } = this.props.login;
+      if(updatePwdResponse.err==0){
+        this.loginOut();
+      }else{
+        message.error(updatePwdResponse.msg);
+      }
+    })
+  }
+  handleResetPasswordBlur = value => {
+    this.setState({ confirmDirty: this.state.confirmDirty || !!value });
+  };
   getChildContext() {
     const { location, routerData } = this.props;
     return {
@@ -115,40 +327,39 @@ class BasicLayout extends React.PureComponent {
         isMobile: mobile,
       });
     });
-    // const { dispatch } = this.props;
-    // dispatch({
-    //   type: 'user/fetchCurrent',
-    // }).then(()=>{
-      //取localStorage值，当currentUsername为""
-      const { currentUsername } = this.props;      
-      if(!currentUsername){
-        window.history.replaceState(null, 'login', '#/user/login');
-        window.location.reload();
-      }
-    // });
+    //取localStorage值，当currentUsername为""
+    const { currentUsername } = this.props;      
+    if(!currentUsername){
+      window.history.replaceState(null, 'login', '#/user/login');
+      window.location.reload();
+    }
 
     //udesk客服组件接入，客户认证，手动初始化
-        //随机数
-        let noncevalue=parseInt(1000000*Math.random()).toString(16)+parseInt(1000000*Math.random()).toString(16)+parseInt(1000000*Math.random()).toString(16);
-        //时间戳
-        let timestampvalue=(new Date()).valueOf();
-        //客户key
-        let web_token_value=window.localStorage.getItem('mobilePhone');
-        //加密算法
-        let sign_str = `nonce=${noncevalue}&timestamp=${timestampvalue}&web_token=${web_token_value}&d34ab0d37757ed23b62712cced140fde`;
-        sign_str = sha1(sign_str).toString().toUpperCase();
-        window.ud("customer",{
-        "c_name": window.localStorage.getItem('realName'),
-        "c_phone":window.localStorage.getItem('mobilePhone'),
-        "c_org":window.localStorage.getItem('branchName'),
-        "c_email":"test@51zhaoyou.com",
-        "nonce":noncevalue,
-        "signature": sign_str,
-        "timestamp": timestampvalue,
-        "web_token": web_token_value
-        })
-        // window.ud.init();
-        document.getElementById("btn_udesk_im").style.display="block";
+    //随机数
+    let noncevalue=parseInt(1000000*Math.random()).toString(16)+parseInt(1000000*Math.random()).toString(16)+parseInt(1000000*Math.random()).toString(16);
+    //时间戳
+    let timestampvalue=(new Date()).valueOf();
+    //客户key
+    let web_token_value=window.localStorage.getItem('mobilePhone');
+    //加密算法
+    let sign_str = `nonce=${noncevalue}&timestamp=${timestampvalue}&web_token=${web_token_value}&d34ab0d37757ed23b62712cced140fde`;
+    sign_str = sha1(sign_str).toString().toUpperCase();
+    window.ud("customer",{
+    "c_name": window.localStorage.getItem('realName'),
+    "c_phone":window.localStorage.getItem('mobilePhone'),
+    "c_org":window.localStorage.getItem('branchName'),
+    "c_email":"test@51zhaoyou.com",
+    "nonce":noncevalue,
+    "signature": sign_str,
+    "timestamp": timestampvalue,
+    "web_token": web_token_value
+    })
+    document.getElementById("btn_udesk_im").style.display="block";
+    //用户登录后强制重置密码 需要加判断 判断账号是否第一次登录 除了0都不用强制弹窗
+    const {type}=this.state;
+    if(type==0){
+      this.handleModalVisible(true);
+    }
   }
   componentWillMount(){
     this.props.history.push;
@@ -218,6 +429,7 @@ class BasicLayout extends React.PureComponent {
 
   handleMenuClick = ({ key }) => {
     const { dispatch } = this.props;
+    const {type}=this.state;
     if (key === 'triggerError') {
       dispatch(routerRedux.push('/exception/trigger'));
       return;
@@ -226,6 +438,9 @@ class BasicLayout extends React.PureComponent {
       dispatch({
         type: 'login/logout',
       });
+    }
+    if(key=='changePwd'){
+      this.handleModalVisible(true);
     }
   };
   handleNoticeVisibleChange = visible => {
@@ -246,8 +461,16 @@ class BasicLayout extends React.PureComponent {
       match,
       location,
     } = this.props;
-    const { isMobile: mb } = this.state;
+    const { isMobile: mb,modalVisible,type ,confirmDirty} = this.state;
     const bashRedirect = this.getBaseRedirect();
+    const parentMethods={
+      handleMotifyPwd: this.handleMotifyPwd,
+      handleModalVisible: this.handleModalVisible,
+      handleResetPasswordBlur: this.handleResetPasswordBlur,
+      loginOut:this.loginOut,
+      type:type,
+      confirmDirty:confirmDirty
+    };
     const layout = (
       <Layout>
         <SiderMenu
@@ -325,10 +548,11 @@ class BasicLayout extends React.PureComponent {
               }
             />
           </Footer>
+          <CreateForm {...parentMethods} modalVisible={modalVisible} />
         </Layout>
       </Layout>
     );
-
+    
     return (
       <DocumentTitle title={this.getPageTitle()}>
         <ContainerQuery query={query}>

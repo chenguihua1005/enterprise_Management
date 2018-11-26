@@ -1,6 +1,6 @@
 import React, { PureComponent, Fragment } from 'react';
 import { connect } from 'dva';
-import { Row, Col, Icon, Card, Badge, Form, Button, Table, DatePicker, Input, message } from 'antd';
+import { Row, Col, Icon, Card, Badge, Form, Button, Table, DatePicker, Input, Divider } from 'antd';
 const { RangePicker } = DatePicker;
 import styles from '../Settlement.less';
 import moment from 'moment/moment';
@@ -225,19 +225,18 @@ export default class StatementDetail extends PureComponent {
     const { rangePickerValue } = this.state;
     return (
       <div>
-        <Card>
+        <Card bordered={false}>
           <Row>
             <Col span={8}>
-              <p>账单周期：{billDetail.billCycle}</p>
+              <p>账&nbsp;单&nbsp;周&nbsp;期&nbsp;：{billDetail.billCycle}</p>
             </Col>
             <Col span={8}>
-              <p>账单日：{billDetail.billDate}</p>
+              <p>核销账单日：{billDetail.billDate}</p>
             </Col>
             <Col span={8}>
               <p>账单总额：{billDetail.billAmount} 元</p>
             </Col>
           </Row>
-
           <Row>
             <Col span={8}>
               <p>已核销金额：{billDetail.billedAmount}元</p>
@@ -250,18 +249,18 @@ export default class StatementDetail extends PureComponent {
             </Col>
           </Row>
         </Card>
-
-        <Card>
+        <Divider style={{ marginBottom: 32 }} />
+        <Card style={{ marginTop: 15}} bordered={false}>
           <Form onSubmit={this.handleSearch} layout="inline">
             <Row gutter={{ md: 8, lg: 24, xl: 48 }}>
-              <Col span={12}>
+              <Col span={6}>
                 <FormItem label="订单号">
                   {getFieldDecorator('orderSn', {
                     basicinfo: [{ required: true, message: '请输入订单号' }],
                   })(<Input placeholder="请输入" />)}
                 </FormItem>
               </Col>
-              <Col span={12}>
+              <Col span={6}>
                 <FormItem label="创建时间">
                 {getFieldDecorator('time')(
                   <RangePicker
@@ -274,35 +273,37 @@ export default class StatementDetail extends PureComponent {
                   />)}
                 </FormItem>
               </Col>
-            </Row>
-            <Row gutter={{ md: 8, lg: 24, xl: 48 }}>
-              <Col span={8}>
+              <Col span={5}> 
                 <FormItem label="实收金额">
                   {getFieldDecorator('minAmount', {
                     basicinfo: [{ required: true, message: '最小值' }],
                   })(<Input placeholder="请输入最小值" />)}
                 </FormItem>
               </Col>
-              <Col span={2}>~</Col>
-              <Col span={8}>
+              <Col span={1}>~</Col>
+              <Col span={4}>
                 <FormItem label="">
                   {getFieldDecorator('maxAmount', {
                     basicinfo: [{ required: true, message: '最大值' }],
                   })(<Input placeholder="请输入最大值" />)}
                 </FormItem>
               </Col>
+            </Row>
+            <Row gutter={{ md: 8, lg: 24, xl: 48 }}>
+              
               <span style={{ float: 'right' }}>
                 <Button type="primary" htmlType="submit">
                   <Icon type="search" />查询
                 </Button>
-                <Button type="primary" style={{ marginLeft: 8 }} onClick={this.handleFormReset}>
-                  重置
+                <Button type="" style={{ marginLeft: 8 }} onClick={this.handleFormReset}>
+                <Icon type="sync" />重置
                 </Button>
               </span>
             </Row>
           </Form>
         </Card>
-      </div>
+        <Divider style={{ marginBottom: 32 }} />
+        </div>
     );
   }
   getBillStatus = status => {
@@ -382,15 +383,12 @@ export default class StatementDetail extends PureComponent {
 
     return (
       <div>
-        <Row gutter={24}>
-          <Col xs={24}>
+        
             <Card bordered={false}>
               <div className={styles.tableListForm}>{this.renderAdvancedForm()}</div>
             </Card>
-          </Col>
-        </Row>
-
-        <Card>
+      
+        <Card bordered={false}>
           <Row>
             <Table
               columns={column}

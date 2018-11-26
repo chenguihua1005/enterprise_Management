@@ -80,6 +80,9 @@ export default class GlobalHeader extends PureComponent {
           <Icon type="close-circle" />触发报错
         </Menu.Item>
         <Menu.Divider /> */}
+        <Menu.Item key="changePwd">
+          <Icon type="setting" />修改密码
+        </Menu.Item>
         <Menu.Item key="logout">
           <Icon type="logout" />退出登录
         </Menu.Item>
@@ -111,16 +114,6 @@ export default class GlobalHeader extends PureComponent {
               console.log('enter', value); // eslint-disable-line
             }}
           /> */}
-          {/* <Tooltip title="使用文档">
-            <a
-              target="_blank"
-              href="http://pro.ant.design/docs/getting-started"
-              rel="noopener noreferrer"
-              className={styles.action}
-            >
-              <Icon type="question-circle-o" />
-            </a>
-          </Tooltip> */}
           {/* <NoticeIcon
             className={styles.action}
             count={currentUser.notifyCount}
@@ -149,12 +142,14 @@ export default class GlobalHeader extends PureComponent {
               title="待办"
               emptyText="你已完成所有待办"
               emptyImage="https://gw.alipayobjects.com/zos/rmsportal/HsIsxMZiWKrNUavQUXqx.svg"
+
+              src="https://gw.alipayobjects.com/zos/rmsportal/BiazfanxmamNRoxxVxka.png"
             />
           </NoticeIcon> */}
           {currentUsername ? (
             <Dropdown overlay={menu}>
               <span className={`${styles.action} ${styles.account}`}>
-                <Avatar size="small" className={styles.avatar}/>
+                <Avatar size="small" className={styles.avatar} src="/currentUser.png"/>
                 <span className={styles.name}>{currentUsername}</span>
               </span>
             </Dropdown>

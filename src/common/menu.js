@@ -3,14 +3,14 @@ import { isUrl } from '../utils/utils';
 const menuData = [
   {
     name:'数据总览',
-    icon:'home',
+    icon:'bar-chart',
     path:'dashboard',
     amUrl:"/dashboard",
     // authority:"noAuthority"
   },
   {
     name:'基础信息管理',
-    icon:'idcard',
+    icon:'solution',
     path:'basicinfo',
     amUrl:"/basicinfo",
     children:[
@@ -18,14 +18,12 @@ const menuData = [
         icon:'desktop',
         name:'分公司管理',
         path:'subsidiary',
-        // authority: "noAuthority",
         amUrl:"/basicinfo/subsidiary"
       },
       {
         icon:'team',
         name:'司机管理',
         path:'driver',
-        // authority: "noAuthority",
         amUrl:"/basicinfo/driver"
       },
       {
@@ -37,14 +35,12 @@ const menuData = [
           {
             icon:'user',
             name:'角色管理',
-            // authority: "noAuthority",
             path:'role',
             amUrl:"/basicinfo/accountadmin/role"
           },
           {
             icon:'idcard',
             name:'用户管理',
-            // authority: "noAuthority",
             path:'account',
             amUrl:"/basicinfo/accountadmin/account"
           }
@@ -62,14 +58,13 @@ const menuData = [
         icon:'exception',
         name:'加油订单列表',
         path:'orderlist',
-        // authority: "noAuthority",
         amUrl:"/order/orderlist"
       }
     ]
   },
   {
     name:'油费管理',
-    icon:'barcode',
+    icon:'red-envelope',
     path:'oilfee',
     amUrl:"/oilfee",
     children:[
@@ -83,21 +78,18 @@ const menuData = [
             icon:'area-chart',
             name:'总账户',
             path:'general',
-            // authority: "noAuthority",
             amUrl:"/oilfee/oilaccount/general"
           },
           {
             icon:'bar-chart',
             name:'分公司账户',
             path:'branch',
-            // authority: "noAuthority",
             amUrl:"/oilfee/oilaccount/branch"
           },
           {
             icon:'setting',
             name:'司机账户',
             path:'driveraccout',
-            // authority: "noAuthority",
             amUrl:"/oilfee/oilaccount/driveraccout"
           }
         ]
@@ -106,7 +98,6 @@ const menuData = [
         name:'油费发放',
         icon:'shop',
         path:'provide',
-        // authority: "noAuthority",
         amUrl:"/oilfee/provide"
       },
       // {
@@ -161,23 +152,26 @@ const menuData = [
       },
     ]
   },
-  // {
-  //   name:'数据报表',
-  //   icon:'barcode',
-  //   path:'report',
-  //   children:[
-  //     {
-  //       name:'加油日报表',
-  //       icon:'aliwangwang-o',
-  //       path:'day',
-  //     },      
-  //     {
-  //       name:'加油月报表',
-  //       icon:'aliwangwang-o',
-  //       path:'month',
-  //     },
-  //   ]
-  // },
+  {
+    name:'数据报表',
+    icon:'file-excel',
+    path:'sheet',
+    amUrl:"/sheet",
+    children:[
+      {
+        name:'加油日报表',
+        icon:'line-chart',
+        path:'dailysheet',
+        amUrl:"/sheet/dailysheet",
+      },      
+      {
+        name:'加油月报表',
+        icon:'area-chart',
+        path:'monthlysheet',
+        amUrl:"/sheet/monthlysheet",
+      },
+    ]
+  }
 ];
 
 function clearAuthority(data){

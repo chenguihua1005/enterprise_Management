@@ -1030,12 +1030,12 @@ export default class Driver extends PureComponent {
             <div className={styles.tableListForm}>
               <Form layout="inline" onSubmit={this.handleSearch}>
                 <Row gutter={{ md: 8, lg: 24, xl: 24 }}>
-                  <Col md={6} sm={24}>
+                  <Col md={7} sm={24}>
                     <FormItem label="角色名称">
                       {getFieldDecorator('arName')(<Input placeholder="请输入" />)}
                     </FormItem>
                   </Col>
-                  <Col md={6} sm={24}>
+                  <Col md={7} sm={24}>
                     <FormItem label="设置权限">
                       {getFieldDecorator('isGrant', {
                             initialValue:'-1',
@@ -1052,7 +1052,7 @@ export default class Driver extends PureComponent {
                         )}
                     </FormItem>
                   </Col>
-                  <Col md={6} sm={24}>
+                  <Col md={7} sm={24}>
                     <FormItem label="是否有效">
                       {getFieldDecorator('isvalid', {
                             initialValue:'-1',
@@ -1069,13 +1069,13 @@ export default class Driver extends PureComponent {
                       )}
                     </FormItem>
                   </Col>
-                  <Col md={6} sm={24}>
+                  <Col md={3} sm={24}>
                     <span style={{ float: 'right'}}>
                         <Button type="primary" htmlType="submit">
                             查询
                             </Button>
                             <Button style={{ marginLeft: 8 }} onClick={this.handleFormReset}>
-                            重置
+                            <Icon type="sync" />重置
                         </Button>
                     </span>
                   </Col>
@@ -1083,7 +1083,7 @@ export default class Driver extends PureComponent {
               </Form>
             </div>
           </Card>
-          <Row style={{ marginTop: 20 }}>
+          <Row style={{ marginTop: 15 }}>
             <Card>
               <div className={styles.tableListOperator}>
                 <Button icon="plus" type="primary" onClick={() => this.handleModalVisible(true)}>

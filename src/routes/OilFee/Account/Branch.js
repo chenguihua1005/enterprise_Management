@@ -19,7 +19,7 @@ import {
 import PageHeaderLayout from '../../../layouts/PageHeaderLayout';
 
 import styles from '../OilFee.less';
-
+import { isArrayIterable } from '../../../utils/utils';
 import AccountBranchDetailComponent from './BranchDetail';
 import OilFeeRecycle from '../components/OilFeeRecycle';
 import OilFeeGrantSingle from '../components/OilFeeGrantSingle';
@@ -113,6 +113,8 @@ export default class AccountBranchComponent extends PureComponent {
         page: 1,
         pageSize: 10,
         isCount: 1,
+        branchName: '',
+        companyLevel: -1,
       },
     }).then(() => {
       this.setState({
@@ -214,7 +216,7 @@ export default class AccountBranchComponent extends PureComponent {
           <Col md={12} sm={24}>
             <FormItem label="分公司级别">
               {getFieldDecorator('branchLevel', {
-                initialValue: -1,
+                initialValue: "全部",
               })(
                 <Select placeholder="请选择" style={{ width: '100%' }}>
                   {companyLevelOptions}
@@ -229,7 +231,7 @@ export default class AccountBranchComponent extends PureComponent {
               <Icon type="search" />查询
             </Button>
             <Button style={{ marginLeft: 8 }} onClick={this.handleFormReset}>
-              重置
+              <Icon type="sync" />重置
             </Button>
           </span>
         </div>
@@ -292,8 +294,7 @@ export default class AccountBranchComponent extends PureComponent {
 
     //公司等级
     const companyLevelOptions = [];
-    //遍历前要检查是否存在，不然会报错： Cannot read property 'forEach' of undefined
-    if (oilBranchInfoCompanyLevel != undefined && oilBranchInfoCompanyLevel.length > 0) {
+    if (isArrayIterable(oilBranchInfoCompanyLevel)) {
       oilBranchInfoCompanyLevel.forEach(item => {
         companyLevelOptions.push(
           <Option key={item.key} value={item.key}>

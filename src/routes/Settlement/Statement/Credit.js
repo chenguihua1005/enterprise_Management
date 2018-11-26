@@ -19,7 +19,7 @@ import PageHeaderLayout from '../../../layouts/PageHeaderLayout';
 
 import styles from '../Settlement.less';
 import moment from 'moment/moment';
-import { getTimeDistance } from '../../../utils/utils';
+import { isArrayIterable } from '../../../utils/utils';
 import StatementDetail from './StatementDetail';
 import form from './../../Forms/StepForm/Step1';
 const FormItem = Form.Item;
@@ -31,16 +31,16 @@ const getValue = obj =>
     .map(key => obj[key])
     .join(',');
 
-// rowSelection object indicates the need for row selection
-const rowSelection = {
-  onChange: (selectedRowKeys, selectedRows) => {
-    // console.log(`selectedRowKeys: ${selectedRowKeys}`, 'selectedRows: ', selectedRows);
-  },
-  getCheckboxProps: record => ({
-    // disabled: record.name === 'Disabled User', // Column configuration not to be checked
-    name: record.name,
-  }),
-};
+// checkBox 筛选
+// const rowSelection = {
+//   onChange: (selectedRowKeys, selectedRows) => {
+//     // console.log(`selectedRowKeys: ${selectedRowKeys}`, 'selectedRows: ', selectedRows);
+//   },
+//   getCheckboxProps: record => ({
+//     // disabled: record.name === 'Disabled User', // Column configuration not to be checked
+//     name: record.name,
+//   }),
+// };
 
 @connect(({ statement, loading }) => ({
   statement,
@@ -124,7 +124,7 @@ export default class Credit extends PureComponent {
         page: pagination.current,
         pageSize: pagination.pageSize,
         isCount: 1,
-        billType: 1,
+        billType: 2,
       };
 
       const values = {
@@ -194,7 +194,7 @@ export default class Credit extends PureComponent {
         page: 1,
         pageSize: 10,
         isCount: 1,
-        billType: 1,
+        billType: 2,
       };
 
       const values = {
@@ -231,7 +231,7 @@ export default class Credit extends PureComponent {
         page: 1,
         pageSize: 10,
         isCount: 1,
-        billType: 1,
+        billType: 2,
         billStartTime: '',
         billEndTime: '',
       },
@@ -347,7 +347,7 @@ export default class Credit extends PureComponent {
         page: 1,
         pageSize: 10,
         isCount: 1,
-        billType: 1,
+        billType: 2,
       },
     });
   };
@@ -378,8 +378,7 @@ export default class Credit extends PureComponent {
 
     //结算主体
     const ownOptions = [];
-    //遍历前要检查是否存在，不然会报错： Cannot read property 'forEach' of undefined
-    if (ownCompanyList != undefined && ownCompanyList.length > 0) {
+    if (isArrayIterable(ownCompanyList)) {
       ownCompanyList.forEach(item => {
         ownOptions.push(
           <Option key={item.ownId} value={`${item.ownId}`}>
@@ -459,7 +458,7 @@ export default class Credit extends PureComponent {
 
     const pageList = (
       <div>
-        <Row gutter={24} style={{ marginBottom: '24px' }}>
+        <Row gutter={24} style={{ marginBottom: 15 }}>
           <Col xs={24}>
             <Card bordered={false}>
               <div className={`${styles.tableList} ${styles.tableListForm}`}>
@@ -472,7 +471,10 @@ export default class Credit extends PureComponent {
                     </Col>
                     <Col md={12} sm={24}>
                       <FormItem label="结算主体">
-                        {getFieldDecorator('ownCompanyId')(
+                        {getFieldDecorator('ownCompanyId',{
+                          initialText: '全部',
+                          initialValue: '全部',
+                        })(
                           <Select
                             showSearch
                             allowClear
@@ -491,7 +493,10 @@ export default class Credit extends PureComponent {
                   <Row gutter={{ md: 8, lg: 24, xl: 48 }}>
                     <Col md={12} sm={24}>
                       <FormItem label="还款状态">
-                        {getFieldDecorator('settledStatus')(
+                        {getFieldDecorator('settledStatus',{
+                          initialText: '全部',
+                          initialValue: '全部',
+                        })(
                           <Select placeholder="请选择" style={{ width: '100%' }}>
                             <Option value="-1">全部</Option>
                             <Option value="2">结算中</Option>
@@ -514,15 +519,15 @@ export default class Credit extends PureComponent {
                     </Col>
                   </Row>
                   <div style={{ overflow: 'hidden' }}>
-                    <span style={{ float: 'right', marginBottom: 24 }}>
+                    <span style={{ float: 'right' }}>
                       <Button type="primary" htmlType="submit">
                         <Icon type="search" />查询
                       </Button>
-                      <Button style={{ marginLeft: 8 }} onClick={this.handleFormReset}>
-                        重置
-                      </Button>
-                      <Button style={{ marginLeft: 8 }} type="primary" onClick={this.handlEexport}>
+                      <Button style={{ marginLeft: 8 }} type="" onClick={this.handlEexport}>
                         <Icon type="export" />导出
+                      </Button>
+                      <Button style={{ marginLeft: 8 }} onClick={this.handleFormReset}>
+                      <Icon type="sync" />重置
                       </Button>
                     </span>
                   </div>
@@ -535,7 +540,7 @@ export default class Credit extends PureComponent {
           <div className={styles.tableList}>
             <Table
               loading={loading}
-              rowSelection={rowSelection}
+              // rowSelection={rowSelection}
               columns={columns}
               dataSource={tableData}
               pagination={paginationProps}

@@ -3,7 +3,7 @@ import { connect } from 'dva';
 import { Form, Input, Modal, Select, message, Row, Col, Cascader } from 'antd';
 const FormItem = Form.Item;
 const Option = Select.Option;
-import { getTimeDistance, isNum } from '../../../utils/utils';
+import { getTimeDistance, isNum, isArrayIterable } from '../../../utils/utils';
 
 @connect(({ oilfee }) => ({
   oilfee,
@@ -78,6 +78,12 @@ export default class OilFeeRecycleSelect extends PureComponent {
             //err=0成功
             case 0:
               message.success(provideRecover.msg);
+              //油费账户详情
+              dispatch({
+                type: 'oilfee/fetch1',
+                payload: {
+                },
+              });
               //更新发放明细列表
               //油费发放详情
               dispatch({
@@ -142,7 +148,7 @@ export default class OilFeeRecycleSelect extends PureComponent {
         },
       }).then(() => {
         const { provideDriver } = this.props.oilfee;
-        if (provideDriver != undefined && provideDriver.length > 0) {
+        if (isArrayIterable(provideDriver)) {
           let allDrivers = [];
           //所有的司机
           provideDriver.forEach(item => {
@@ -174,7 +180,7 @@ export default class OilFeeRecycleSelect extends PureComponent {
         },
       }).then(() => {
         const { provideCompany } = this.props.oilfee;
-        if (provideCompany != undefined && provideCompany.length > 0) {
+        if (isArrayIterable(provideCompany)) {
           let allMotorcade = [];
           //所有的分公司
           provideCompany.forEach(item => {

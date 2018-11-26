@@ -20,7 +20,7 @@ import reqwest from 'reqwest';
 import { baseUrl } from '../../services/api';
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
 import styles from './Basicinfo.less';
-import { isMobileNumber } from '../../utils/utils';
+import { isMobileNumber, isArrayIterable } from '../../utils/utils';
 
 const FormItem = Form.Item;
 const { Option } = Select;
@@ -146,9 +146,9 @@ const CreateForm = Form.create()(props => {
       onCancel={() => handleCloseModalVisible(false)}
       maskClosable={false}
     >
-      <Row>
+      <Row className={styles.modelStyle}>
         <Col span={12}>
-          <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 15 }} label="手机号">
+          <FormItem labelCol={{ span: 6 }} wrapperCol={{ span: 15 }} label="司机手机号">
             {getFieldDecorator('employeeMobile', {
               initialValue: driverData.employeeMobile,
               rules: [
@@ -162,7 +162,7 @@ const CreateForm = Form.create()(props => {
           </FormItem>
         </Col>
         <Col span={12}>
-          <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 15 }} label="姓名">
+          <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 15 }} label="司机姓名">
             {getFieldDecorator('employeeName', {
               rules: [{ type: 'string', required: true, message: '请输入姓名!' }],
               initialValue: driverData.employeeName,
@@ -170,9 +170,9 @@ const CreateForm = Form.create()(props => {
           </FormItem>
         </Col>
       </Row>
-      <Row>
+      <Row className={styles.modelStyle}>
         <Col span={12}>
-          <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 15 }} label="所属分公司">
+          <FormItem labelCol={{ span: 6}} wrapperCol={{ span: 15 }} label="所属分公司">
             {getFieldDecorator('companyId', {
               rules: [{ required: true, message: '请选择所属分公司!' }],
               initialValue: driverData.belongCompanyId,
@@ -210,9 +210,9 @@ const CreateForm = Form.create()(props => {
           </FormItem>
         </Col>
       </Row>
-      <Row>
+      <Row className={styles.modelStyle}>
         <Col span={24}>
-          <FormItem labelCol={{ span: 2 }} wrapperCol={{ span: 20 }} label="备注">
+          <FormItem labelCol={{ span: 2 }} wrapperCol={{ span: 20 }} label="添加备注">
             {getFieldDecorator('remark', {
               basicinfo: [{ required: true, message: 'Please input some description...' }],
               initialValue: driverData.remark,
@@ -230,7 +230,10 @@ const CreateForm = Form.create()(props => {
 }))
 @Form.create()
 export default class Driver extends PureComponent {
-  state = {
+  constructor(props) {
+  super(props); // 调用积累所有的初始化方法
+  this.title = '新增',
+  this.state = {
     current: 1,
     isChange: false, //默认新增
     flag:false,
@@ -241,7 +244,6 @@ export default class Driver extends PureComponent {
       belongCompanyId: '',
       belongCompanyType: '',
     },
-    title: '新增',
     selectedRows: [],
     formValues: {},
     modalVisible: false,
@@ -257,6 +259,7 @@ export default class Driver extends PureComponent {
     //上传
     fileList: [],
   };
+}
 
   componentWillReceiveProps(nextProps) {
     this.setState({
@@ -326,13 +329,14 @@ export default class Driver extends PureComponent {
     const { dispatch, form } = this.props;
     if (record && record.hasOwnProperty('key')) {
       //编辑司机
+      this.title = '编辑分公司',
       this.setState({
         isChange: true,
         driverProps: {
           ...this.driverProps,
           ...record,
         },
-        title: '编辑',
+        
         modalVisible: !!flag,
       });
       dispatch({
@@ -346,6 +350,7 @@ export default class Driver extends PureComponent {
       });
     } else {
       //新增司机
+      this.title = '新增分公司',
       this.setState({
         isChange: false,
         driverData: {
@@ -807,8 +812,7 @@ export default class Driver extends PureComponent {
 
     //司机管理-所属分公司，全部
     const branchOptions = [];
-    //遍历前要检查是否存在，不然会报错： Cannot read property 'forEach' of undefined
-    if (branchCompany != undefined && branchCompany.length > 0) {
+    if (isArrayIterable(branchCompany)) {
       branchCompany.forEach(item => {
         branchOptions.push(
           <Option
@@ -823,8 +827,7 @@ export default class Driver extends PureComponent {
     }
     //司机管理-所属分公司
     const branchOptions2 = [];
-    //遍历前要检查是否存在，不然会报错： Cannot read property 'forEach' of undefined
-    if (branchCompany2 != undefined && branchCompany2.length > 0) {
+    if (isArrayIterable(branchCompany2)) {
       branchCompany2.forEach(item => {
         branchOptions2.push(
           <Option
@@ -884,6 +887,7 @@ export default class Driver extends PureComponent {
     const parentMethods = {
       handleAdd: this.handleAdd,
       closeModalVisible: this.closeModalVisible,
+      title: this.title,
       branchOptions2,
       // ValidationOptions,
       driverData,
@@ -926,15 +930,12 @@ export default class Driver extends PureComponent {
       {
         title: '操作',
         render: (text, record) => (
-          <Fragment>
-            <Button type="primary" onClick={() => this.setModalVisible(true, record)}>
-              编辑
-            </Button>
-            {/* <Divider type="vertical" />
-            <Popconfirm title="确定要删除司机吗?" onConfirm={() => this.handleDelete(record)}>
-              <Button type="danger">删除</Button>
-            </Popconfirm> */}
-          </Fragment>
+          <Icon 
+          type="form" 
+          theme="outlined" 
+          title="编辑" 
+          onClick={() => this.setModalVisible(true, record)}
+          style={{ color:'#1890ff',fontSize:'16'}}/>
         ),
       },
     ];
@@ -945,23 +946,21 @@ export default class Driver extends PureComponent {
             <div className={styles.tableListForm}>
               <Form onSubmit={this.handleSearch} layout="inline">
                 <Row gutter={{ md: 8, lg: 24, xl: 48 }}>
-                  <Col md={12} sm={24}>
-                    <FormItem label="手机号">
+                  <Col md={8} sm={24}>
+                    <FormItem label="手&nbsp;机&nbsp;号&nbsp;">
                       {getFieldDecorator('employeeMobile')(<Input placeholder="请输入" />)}
                     </FormItem>
                   </Col>
-                  <Col md={12} sm={24}>
+                  <Col md={8} sm={24}>
                     <FormItem label="姓名">
                       {getFieldDecorator('employeeName')(<Input placeholder="请输入" />)}
                     </FormItem>
                   </Col>
-                </Row>
-                <Row gutter={{ md: 8, lg: 24, xl: 48 }}>
-                  <Col md={12} sm={24}>
+                  <Col md={8} sm={24}>
                     <FormItem label="所属分公司">
                       {getFieldDecorator('companyId', {
-                        initialValue: -1,
-                        // initialText: '全部',
+                        initialText: '全部',
+                        initialValue: '全部',
                       })(
                         <Select
                           placeholder="请选择"
@@ -974,16 +973,19 @@ export default class Driver extends PureComponent {
                       )}
                     </FormItem>
                   </Col>
+                </Row>
+                <Row gutter={{ md: 8, lg: 24, xl: 48 }}>
+                  
                   <Col md={12} sm={24}>
                     <FormItem label="是否有效">
                       {getFieldDecorator('status', {
-                        initialValue: "0",
+                        initialValue: "全部",
                       })(
                         <Select
                           placeholder="请选择"
                           showSearch={true}
                           // onChange={this.handleValidList}
-                          style={{ width: '100%' }}
+                          style={{ width: '60%' }}
                         >
                           {/* {ValidationOptions} */}
                           <Option value="0">全部</Option>
@@ -993,21 +995,21 @@ export default class Driver extends PureComponent {
                       )}
                     </FormItem>
                   </Col>
+                  <Col md={12} sm={24}>
+                    <div style={{ float: 'right' }}>
+                      <Button type="primary" htmlType="submit">
+                        <Icon type="search" />查询
+                      </Button>
+                      <Button style={{ marginLeft: 8 }} onClick={this.handleFormReset}>
+                    <Icon type="sync" />重置
+                    </Button>
+                    </div>
+                  </Col>
                 </Row>
-                <div style={{ overflow: 'hidden' }}>
-                  <span style={{ float: 'right', marginBottom: 24 }}>
-                    <Button type="primary" htmlType="submit">
-                      <Icon type="search" />查询
-                    </Button>
-                    <Button style={{ marginLeft: 8 }} onClick={this.handleFormReset}>
-                      重置
-                    </Button>
-                  </span>
-                </div>
               </Form>
             </div>
           </Card>
-          <Row style={{ marginTop: 20 }}>
+          <Row style={{ marginTop: 15 }}>
             <Card>
               <div className={styles.tableListOperator}>
                 <Button icon="plus" type="primary" onClick={() => this.setModalVisible(true)}>

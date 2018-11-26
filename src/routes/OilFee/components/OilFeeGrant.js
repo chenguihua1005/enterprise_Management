@@ -14,7 +14,7 @@ import {
   Table,
   Popconfirm,
 } from 'antd';
-import { isNum } from '../../../utils/utils';
+import { isNum, isArrayIterable } from '../../../utils/utils';
 const FormItem = Form.Item;
 const { Option } = Select;
 const Search = Input.Search;
@@ -89,10 +89,6 @@ export default class OilFeeGrantComponent extends PureComponent {
             message.warning('金额需大于0');
             return;
           } 
-          else if (parseFloat(this.state.averageCount) > parseFloat(this.props.oilfee.oilAccountInfoAmount)) {
-            message.warning('发放金额必须小于或等于可发放金额！');
-            return;
-          }
           for (let item of data) {
             objList.push({
               no: item.id,
@@ -108,11 +104,7 @@ export default class OilFeeGrantComponent extends PureComponent {
             } else if (parseFloat(item.average) <= 0) {
               message.warning('金额需大于0');
               return;
-            } 
-            else if (parseFloat(item.average) > parseFloat(this.props.oilfee.oilAccountInfoAmount)) {
-              message.warning('发放金额必须小于或等于可发放金额！');
-              return;
-            }            
+            }          
             objList.push({
               no: item.id,
               obj: item.id,
@@ -416,6 +408,7 @@ export default class OilFeeGrantComponent extends PureComponent {
             message: '提醒',
             description: '发放数量超过200条，请通过批量导入的方式发放油费！',
           });
+          this.selectedRows.length = 200;
           return;
         }
         this.setState({
@@ -427,13 +420,7 @@ export default class OilFeeGrantComponent extends PureComponent {
         name: record.name,
       }),
     };
-    let count;
-    if (this.state.isDriver == '2') {
-      //司机
-      count = provideDriverCount;
-    } else {
-      count = provideCompanyCount;
-    }
+    let count = this.state.isDriver == '2' ? provideDriverCount: provideCompanyCount;
     //分页属性设置
     const paginationProps = {
       showQuickJumper: true,
@@ -447,12 +434,15 @@ export default class OilFeeGrantComponent extends PureComponent {
     const { getFieldDecorator } = form;
     return (
       <Modal
-        title={this.state.isDriver == '2' ? '选择司机' : '选择分公司/车队'}
+        title={this.state.isDriver == '2' ? <p style={{ fontSize: '22px' }}>选择司机</p> : <p style={{ fontSize: '22px' }}>选择分公司/车队</p>}
         width={850}
         // style={{ maxHeight: 400, marginBottom: 30 }}
         visible={this.state.checkboxModalVisible}
         onCancel={() => this.toggleCheckboxModal(false)}
-        onOk={this.handleAddMotorcade}
+        // onOk={this.handleAddMotorcade}
+        footer={[
+          <Button key="ok" type="primary" onClick={this.handleAddMotorcade} style={{ width:'135px', height:'40px', fontSize:'18px', marginRight:'350px'}}>确定选择</Button>,
+        ]}
         maskClosable={false}
       >
         <div style={{ borderBottom: '1px solid #E9E9E9', marginBottom: 10, paddingBottom: 10 }}>
@@ -460,7 +450,7 @@ export default class OilFeeGrantComponent extends PureComponent {
             <Col span={12} offset={4}>
               {getFieldDecorator('search', {})(
                 <Search
-                  placeholder={this.state.isDriver == '2' ? '司机姓名 / 手机号' : '分公司名称'}
+                  placeholder={this.state.isDriver == '2' ? '输入司机姓名 / 司机手机号' : '输入分公司名称'}
                   enterButton="查询"
                   size="default"
                   onSearch={this.handleSearch}
@@ -517,7 +507,7 @@ export default class OilFeeGrantComponent extends PureComponent {
     const { getFieldDecorator, getFieldValue } = form;
     const { provideCompany, provideDriver, provideCompanyCount, provideDriverCount } = oilfee;
 
-    if (provideCompany != undefined && provideCompany.length > 0) {
+    if (isArrayIterable(provideCompany)) {
       //所有的分公司
       this.allMotorcade = [];
       provideCompany.forEach(item => {
@@ -532,7 +522,7 @@ export default class OilFeeGrantComponent extends PureComponent {
       this.allMotorcade = [];
     }
 
-    if (provideDriver != undefined && provideDriver.length > 0) {
+    if (isArrayIterable(provideDriver)) {
       //所有的司机
       this.allDrivers = [];
       provideDriver.forEach(item => {

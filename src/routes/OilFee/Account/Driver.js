@@ -60,14 +60,19 @@ export default class AccountBranchComponent extends PureComponent {
   };
   // 发放弹窗 操作
   handleGrantModalVisible = (status, info) => {
-    if (info.isRecover == 0 || info.isRecover == 2) {
+    // if (info.isRecover == 0 || info.isRecover == 2) {
+    //   message.warning('您只能给有效司机发放油费！');
+    //   return;
+    // }参数不对
+    if (info.status == "0") {
       message.warning('您只能给有效司机发放油费！');
       return;
+    }else{
+      this.setState({
+        grantModalVisible: status,
+        grantInfo: info,
+      });
     }
-    this.setState({
-      grantModalVisible: status,
-      grantInfo: info,
-    });
   };
 
   componentDidMount() {
@@ -251,7 +256,7 @@ export default class AccountBranchComponent extends PureComponent {
                   <Icon type="export" />导出
                 </Button>
                 <Button style={{ marginLeft: 8 }} onClick={this.handleFormReset}>
-                  重置
+                  <Icon type="sync" />重置
                 </Button>
               </span>
             </div>
@@ -345,7 +350,7 @@ export default class AccountBranchComponent extends PureComponent {
           <span>
             <Button
               type="primary"
-              // disabled={record.status == 0 || record.status == 1001}
+              disabled={record.status == "0"}
               onClick={() => this.handleGrantModalVisible(true, record)}
             >
               发放油费

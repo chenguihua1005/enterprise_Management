@@ -15,7 +15,7 @@ import {
   Badge,
 } from 'antd';
 import PageHeaderLayout from '../../layouts/PageHeaderLayout';
-import { isTelNumber } from '../../utils/utils';
+import { isTelNumber, isArrayIterable } from '../../utils/utils';
 
 import styles from './Basicinfo.less';
 const FormItem = Form.Item;
@@ -68,8 +68,9 @@ const CreateForm = Form.create()(props => {
       onCancel={() => setModalVisible()}
       destroyOnClose={true}
       maskClosable={false}
+      bodyStyle={{textAlign:'center'}}
     >
-      <Row>
+      <Row className={styles.modelStyle}>
         <Col span={24}>
           <FormItem labelCol={{ span: 4 }} wrapperCol={{ span: 18 }} label="分公司/车队名称">
             {form.getFieldDecorator('companyName', {
@@ -79,9 +80,9 @@ const CreateForm = Form.create()(props => {
           </FormItem>
         </Col>
       </Row>
-      <Row>
+      <Row className={styles.modelStyle}>
         <Col span={12}>
-          <FormItem labelCol={{ span: 8 }} wrapperCol={{ span: 15 }} label="分公司/车队简称">
+          <FormItem labelCol={{ span: 8 }} wrapperCol={{ span: 14 }} label="分公司/车队简称">
             {form.getFieldDecorator('sortName', {
               rules: [{ type: 'string', required: true, message: '请输入分公司/车队简称!' }],
               initialValue: subsidiaryData.companyShortname,
@@ -89,12 +90,16 @@ const CreateForm = Form.create()(props => {
           </FormItem>
         </Col>
         <Col span={12}>
-          <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 15 }} label="所属分公司">
+          <FormItem labelCol={{ span: 6 }} wrapperCol={{ span: 14 }} label="所属分公司">
             {form.getFieldDecorator('parentCompanyId', {
               rules: [{ required: true, message: '请选择所属分公司!' }],
               initialValue: subsidiaryData.parentId,
             })(
-              <Select placeholder="请选择" showSearch={true} style={{ width: '100%' }} disabled={isChange}>
+              <Select 
+              placeholder="请选择" 
+              showSearch={true} 
+              style={{ width: '100%' }} 
+              disabled={isChange}>
                 {options}
               </Select>
             )}
@@ -102,9 +107,9 @@ const CreateForm = Form.create()(props => {
         </Col>
       </Row>
 
-      <Row>
+      <Row className={styles.modelStyle}>
         <Col span={12}>
-          <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 18 }} label="联系人">
+          <FormItem labelCol={{ span: 8 }} wrapperCol={{ span: 14 }} label="分公司联系人&nbsp;">
             {form.getFieldDecorator('contactName', {
               rules: [{ type: 'string', required: true, message: '请输入联系人!' }],
               initialValue: subsidiaryData.fullname,
@@ -112,7 +117,7 @@ const CreateForm = Form.create()(props => {
           </FormItem>
         </Col>
         <Col span={12}>
-          <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 15 }} label="联系电话">
+          <FormItem labelCol={{ span: 6 }} wrapperCol={{ span: 14 }} label="联&nbsp;系&nbsp;电&nbsp;话&nbsp;">
             {form.getFieldDecorator('contactPhone', {
               rules: [{ type: 'string', required: true, message: '请输入联系电话!' },
               {
@@ -124,9 +129,9 @@ const CreateForm = Form.create()(props => {
           </FormItem>
         </Col>
       </Row>
-      <Row>
+      <Row className={styles.modelStyle}>
         <Col span={24}>
-          <FormItem labelCol={{ span: 2 }} wrapperCol={{ span: 20 }} label="备注">
+          <FormItem labelCol={{ span: 4}} wrapperCol={{ span: 18}} label="添&nbsp;加&nbsp;备&nbsp;注&nbsp;">
             {form.getFieldDecorator('remark', {
               basicinfo: [{ required: true, message: 'Please input some description...' }],
               initialValue: subsidiaryData.remark,
@@ -149,10 +154,10 @@ export default class Subsidiary extends PureComponent {
     this.userId = 0;
     this.disable = false;
     this.branchId = -1; //待编辑分公司ID
+    this.title = '新增分公司',
     this.state = {
       current: 1,
       isChange: false,
-      title: '新增',
       modalVisible: false,
       formValues: {},
       visible: false,
@@ -320,6 +325,7 @@ export default class Subsidiary extends PureComponent {
         remark: '',
       },
     });
+    this.title = '新增分公司';
     this.setState({
       isChange: false,
     });
@@ -351,6 +357,7 @@ export default class Subsidiary extends PureComponent {
     this.setState({
       isChange: true,
     });
+    this.title = '编辑分公司';
     //分公司管理-上级分公司-编辑
     dispatch({
       type: 'basicinfo/fetch1BranchEdit',
@@ -372,7 +379,6 @@ export default class Subsidiary extends PureComponent {
 
     this.branchId = key;
     this.setState({
-      title: '编辑',
       modalVisible: !!flag,
     });
   };
@@ -515,8 +521,7 @@ export default class Subsidiary extends PureComponent {
 
     //分公司管理-上级分公司，全部
     const branchOptions = [];
-    //遍历前要检查是否存在，不然会报错： Cannot read property 'forEach' of undefined
-    if (subsidiaryBranchList != undefined && subsidiaryBranchList.length > 0) {
+    if (isArrayIterable(subsidiaryBranchList)) {
       subsidiaryBranchList.forEach(item => {
         branchOptions.push(
           // <Option key={item.branchId} value={`${item.branchId},${item.branchName}`}>
@@ -528,8 +533,7 @@ export default class Subsidiary extends PureComponent {
     }
     //分公司管理-上级分公司-新增
     const branchOptions2 = [];
-    //遍历前要检查是否存在，不然会报错： Cannot read property 'forEach' of undefined
-    if (subsidiaryBranchList2 != undefined && subsidiaryBranchList2.length > 0) {
+    if (isArrayIterable(subsidiaryBranchList2)) {
       subsidiaryBranchList2.forEach(item => {
         branchOptions2.push(
           // <Option key={item.branchId} value={`${item.branchId},${item.branchName}`}>
@@ -541,8 +545,7 @@ export default class Subsidiary extends PureComponent {
     }
     //分公司管理-上级分公司-编辑
     const branchOptions3 = [];
-    //遍历前要检查是否存在，不然会报错： Cannot read property 'forEach' of undefined
-    if (subsidiaryBranchList3 != undefined && subsidiaryBranchList3.length > 0) {
+    if (isArrayIterable(subsidiaryBranchList3)) {
       subsidiaryBranchList3.forEach(item => {
         branchOptions3.push(
           // <Option key={item.branchId} value={`${item.branchId},${item.branchName}`}>
@@ -608,11 +611,12 @@ export default class Subsidiary extends PureComponent {
       {
         title: '操作',
         render: (text, record) => (
-          <Fragment>
-            <Button type="primary" onClick={() => this.handleEdit(true, record.key)}>
-              编辑
-            </Button>
-          </Fragment>
+          <Icon 
+          type="form" 
+          theme="outlined" 
+          title="编辑" 
+          onClick={() => this.handleEdit(true, record.key)}
+          style={{ color:'#1890ff',fontSize:'16'}}/>
         ),
       },
     ];
@@ -620,6 +624,7 @@ export default class Subsidiary extends PureComponent {
     const parentMethods = {
       handleAdd: this.handleAdd,
       closeModalVisible: this.closeModalVisible,
+      title: this.title,
       branchOptions2,
       branchOptions3,
       subsidiaryData,
@@ -634,7 +639,7 @@ export default class Subsidiary extends PureComponent {
               <Form onSubmit={this.handleSearch} layout="inline">
                 <Row gutter={{ md: 8, lg: 24, xl: 48 }}>
                   <Col md={8} sm={24}>
-                    <FormItem label="分公司/车队名称">
+                    <FormItem label="分公司名称">
                       {getFieldDecorator('companyName')(<Input placeholder="请输入" />)}
                     </FormItem>
                   </Col>
@@ -643,12 +648,10 @@ export default class Subsidiary extends PureComponent {
                       {getFieldDecorator('sortName')(<Input placeholder="请输入" />)}
                     </FormItem>
                   </Col>
-                </Row>
-                <Row gutter={{ md: 8, lg: 24, xl: 48 }}>
                   <Col md={8} sm={24}>
                     <FormItem label="上级分公司">
                       {getFieldDecorator('parentCompanyId', {
-                        initialValue: -1,
+                        initialValue: '全部',
                       })(
                         <Select placeholder="请选择" style={{ width: '100%' }}>
                           {branchOptions}
@@ -656,32 +659,34 @@ export default class Subsidiary extends PureComponent {
                       )}
                     </FormItem>
                   </Col>
-                  <Col md={8} sm={24}>
+                </Row>
+                <Row gutter={{ md: 8, lg: 24, xl: 48 }}>
+                  <Col md={12} sm={24}>
                     <FormItem label="分公司级别">
                       {getFieldDecorator('level', {
-                        initialValue: -1,
+                        initialValue: '全部',
                       })(
-                        <Select placeholder="请选择" style={{ width: '100%' }}>
+                        <Select placeholder="请选择" style={{ width: '60%' }}>
                           {levelOptions}
                         </Select>
                       )}
                     </FormItem>
                   </Col>
-                  <Col md={5} sm={24}>
-                    <span style={{ float: 'right', marginBottom: 24 }}>
+                  <Col md={12} sm={24}>
+                    <div style={{ float: 'right' }}>
                       <Button type="primary" htmlType="submit">
                         <Icon type="search" />查询
                       </Button>
                       <Button style={{ marginLeft: 8 }} onClick={this.handleFormReset}>
-                        重置
+                      <Icon type="sync" />重置
                       </Button>
-                    </span>
+                    </div>
                   </Col>
                 </Row>
               </Form>
             </div>
           </Card>
-          <Row style={{ marginTop: 20 }}>
+          <Row style={{ marginTop: 15 }}>
             <Card>
               <div className={styles.tableListOperator}>
                 <Button icon="plus" type="primary" onClick={() => this.handleModalVisible(true)}>
